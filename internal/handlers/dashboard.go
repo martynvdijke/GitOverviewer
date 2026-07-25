@@ -705,7 +705,7 @@ func (h *DashboardHandler) MergeSinglePR(c *gin.Context) {
 	userID := c.GetInt64("user_id")
 
 	var req mergeRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.String(http.StatusBadRequest, "Invalid request")
 		return
 	}
