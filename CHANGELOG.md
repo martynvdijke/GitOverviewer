@@ -1,3 +1,10 @@
+## [1.20.3](https://github.com/martynvdijke/gitlens/compare/v1.20.2...v1.20.3) (2026-07-25)
+
+
+### Bug Fixes
+
+* merge PR button not working due to ShouldBindJSON expecting JSON body ([1e50679](https://github.com/martynvdijke/gitlens/commit/1e50679623fdc9da335d27b6976d5c43acc6c188))
+
 ## [1.20.2](https://github.com/martynvdijke/gitlens/compare/v1.20.1...v1.20.2) (2026-07-22)
 
 
