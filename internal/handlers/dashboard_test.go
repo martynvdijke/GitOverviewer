@@ -1036,6 +1036,42 @@ func TestMergeSinglePR_Success(t *testing.T) {
 	}
 }
 
+func TestMergeSinglePR_SuccessFormEncoded(t *testing.T) {
+	// HTMX sends hx-vals data as URL-encoded form data (not JSON).
+	// Verify ShouldBind (not ShouldBindJSON) correctly handles this.
+	handler, store, client := newTestDashboardHandler(t)
+	u, _ := client.User.Create().SetGithubID(703).SetLogin("mergeform").SetAccessToken("tok").Save(context.Background())
+	r, _ := client.Repository.Create().SetGithubID(61).SetOwner("u").SetName("formrepo").SetFullName("u/formrepo").SetHTMLURL("https://github.com/u/formrepo").SetDefaultBranch("main").SetUserID(u.ID).Save(context.Background())
+
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"merged":true,"message":"Pull Request successfully merged"}`))
+	}))
+	defer apiSrv.Close()
+	handler.gh.APIURL = apiSrv.URL
+
+	sessionID := store.Set(int64(u.ID))
+	w := httptest.NewRecorder()
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.SetHTMLTemplate(template.Must(template.New("").Funcs(template.FuncMap{
+		"printf": fmt.Sprintf,
+	}).Parse(`{{define "prs_tab"}}<div>{{range .PRs}}<div class="pr-item">#{{.Number}}</div>{{else}}<div class="empty">no PRs</div>{{end}}</div>{{end}}{{define "merge_toast"}}{{if .ToastType}}<div id="toast-container" hx-swap-oob="beforeend"><div class="toast">{{.ToastMessage}}{{if .ToastDetails}} <small>{{.ToastDetails}}</small>{{end}}</div></div>{{end}}{{end}}{{define "prs_tab_with_toast"}}{{template "merge_toast" .}}{{template "prs_tab" .}}{{end}}`)))
+	engine.POST("/prs/merge", func(c *gin.Context) { c.Set("user_id", int64(u.ID)); handler.MergeSinglePR(c) })
+	// Send URL-encoded form data (matching HTMX's hx-vals behavior)
+	body := strings.NewReader(fmt.Sprintf("repo_id=%d&pr_number=42", r.ID))
+	req := httptest.NewRequest("POST", "/prs/merge", body)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(&http.Cookie{Name: "gitlens_session", Value: sessionID})
+	engine.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "merged successfully") {
+		t.Errorf("expected success message, got: %s", w.Body.String())
+	}
+}
+
 // ─── BatchMergePRs Tests ──────────────────────────────────────────
 
 func TestBatchMergePRs_NoSelection(t *testing.T) {
