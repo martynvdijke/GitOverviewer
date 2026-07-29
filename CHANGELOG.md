@@ -1,3 +1,10 @@
+## [1.20.7](https://github.com/martynvdijke/gitlens/compare/v1.20.6...v1.20.7) (2026-07-29)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/mattn/go-sqlite3 to v1.14.49 ([#30](https://github.com/martynvdijke/gitlens/issues/30)) ([b88521b](https://github.com/martynvdijke/gitlens/commit/b88521b3857f685e6aaab762167a1ef71b098065))
+
 ## [1.20.6](https://github.com/martynvdijke/gitlens/compare/v1.20.5...v1.20.6) (2026-07-27)
 
 ## [1.20.5](https://github.com/martynvdijke/gitlens/compare/v1.20.4...v1.20.5) (2026-07-26)
