@@ -1,3 +1,10 @@
+## [1.20.11](https://github.com/martynvdijke/gitlens/compare/v1.20.10...v1.20.11) (2026-08-05)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([#34](https://github.com/martynvdijke/gitlens/issues/34)) ([8c12676](https://github.com/martynvdijke/gitlens/commit/8c12676d46116837f70bdb052a103e196dc8f912))
+
 ## [1.20.10](https://github.com/martynvdijke/gitlens/compare/v1.20.9...v1.20.10) (2026-08-03)
 
 ## [1.20.9](https://github.com/martynvdijke/gitlens/compare/v1.20.8...v1.20.9) (2026-07-31)
