@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/static/eink.css">
     <script>!function(){var t=localStorage.getItem("gitlens-theme");t==="light"&&document.documentElement.classList.add("light-theme");{{if and .User .User.EinkMode}}document.documentElement.classList.add("eink-mode"){{end}}var e=new URLSearchParams(window.location.search);e.get("eink")==="1"&&document.documentElement.classList.add("eink-mode")}()</script>
     {{with .User}}{{if and .UmamiURL .UmamiSiteID}}<script async defer src="{{.UmamiURL}}/script.js" data-website-id="{{.UmamiSiteID}}"></script>{{end}}{{end}}
+<script>setInterval(function(){var e=document.documentElement;if(e.classList.contains("eink-mode")){var c=document.getElementById("main-content");if(c&&window.htmx){htmx.ajax("GET",location.pathname,{target:"#main-content",swap:"innerHTML"})}}},300000)</script>
 </head>
 <body>
     <nav class="navbar navbar-expand border-bottom border-secondary">

@@ -491,3 +491,6 @@
     filter: none !important;
     opacity: 1 !important;
 }
+
+/* Wall Mode button only visible in e-ink */
+html.eink-mode .wall-mode-btn { display:inline-flex !important; }

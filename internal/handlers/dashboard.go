@@ -1034,3 +1034,26 @@ func (h *DashboardHandler) RenovateRebaseAll(c *gin.Context) {
 
 	c.String(http.StatusOK, "Renovate rebase-all triggered successfully for %s!", r.FullName)
 }
+
+// WallTab renders the e-ink wall dashboard (large, text-only repo cards).
+func (h *DashboardHandler) WallTab(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+	uid, ok := userID.(int64)
+	if !ok {
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+
+	query := h.client.Repository.Query().Where(repository.HasUserWith(user.IDEQ(int(uid))))
+	repos, err := query.Order(ent.Desc(repository.FieldSyncedAt)).All(c.Request.Context())
+	if err != nil {
+		c.HTML(http.StatusInternalServerError, "wall_tab", gin.H{"Error": err.Error()})
+		return
+	}
+
+	c.HTML(http.StatusOK, "wall_tab", gin.H{"Repos": repos})
+}

@@ -1,5 +1,6 @@
 export function toggleTheme(): void {
     const html = document.documentElement;
+    if (html.classList.contains('eink-mode')) return; // e-ink overrides theme
     const isLight = html.classList.toggle('light-theme');
     localStorage.setItem('gitlens-theme', isLight ? 'light' : 'dark');
     updateThemeIcons(isLight);

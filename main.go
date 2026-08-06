@@ -282,6 +282,7 @@ func main() {
 	authed.Use(middleware.AuthRequired(sessionStore))
 	{
 		authed.GET("/dashboard", middleware.HTMXOnly(), dashHandler.ReposTab)
+		authed.GET("/dashboard/wall", middleware.HTMXOnly(), dashHandler.WallTab)
 		authed.GET("/prs", middleware.HTMXOnly(), dashHandler.PRsTab)
 		authed.POST("/prs/merge", dashHandler.MergeSinglePR)
 		authed.POST("/prs/batch-merge", dashHandler.BatchMergePRs)

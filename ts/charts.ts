@@ -127,3 +127,23 @@ export function loadChartData(since: string): void {
         })
         .catch((e: Error) => console.error('Failed to load chart data:', e));
 }
+
+
+// E-ink mode: charts render as flat black/white without animation or tooltips.
+export function initEinkCharts(): void {
+    const html = document.documentElement;
+    if (!html.classList.contains('eink-mode')) return;
+    (window as any).Chart?.defaults?.set?.('animation', false);
+    (window as any).Chart?.defaults?.set?.('responsive', true);
+    (window as any).Chart?.defaults?.set?.('devicePixelRatio', 1);
+    (window as any).Chart?.defaults?.set?.('interaction', { mode: 'index', intersect: false, enabled: false });
+    (window as any).Chart?.defaults?.set?.('plugins', { tooltip: { enabled: false }, legend: { display: true } });
+    if ((window as any).htmx) {
+        (window as any).htmx.on('htmx:afterSwap', function () { (window as any).initEinkCharts && (window as any).initEinkCharts(); });
+    }
+}
+if (typeof document !== 'undefined') {
+    new MutationObserver(function () { (window as any).initEinkCharts && (window as any).initEinkCharts(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    (window as any).initEinkCharts = initEinkCharts;
+    initEinkCharts();
+}

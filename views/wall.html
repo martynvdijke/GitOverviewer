@@ -1,0 +1,30 @@
+{{define "wall_tab"}}
+<div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+        <a href="/dashboard" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-gauge me-1"></i>Dashboard</a>
+        <span class="fw-bold">Wall Dashboard</span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-light btn-sm" onclick="htmx.ajax('GET', location.pathname, {target:'#main-content', swap:'innerHTML'})"><i class="fa-solid fa-rotate me-1"></i>Refresh Now</button>
+    </div>
+</div>
+<div class="row g-3">
+    {{range .Repos}}
+    <div class="col-12" style="border:2px solid #000;margin-bottom:1rem;padding:1rem;background:#fff;color:#000;">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold" style="font-size:24px;">{{.FullName}}</span>
+            <span>{{if eq .WorkflowStatus "failure"}}FAIL{{else if eq .WorkflowStatus "success"}}PASS{{else}}PENDING{{end}}</span>
+        </div>
+        <div style="font-size:16px;margin-top:.5rem;">
+            {{if .LatestCommitSHA}}<code>{{slice .LatestCommitSHA 0 7}}</code>{{end}}
+            {{if .LatestCommitMessage}}&mdash; {{.LatestCommitMessage}}{{end}}
+        </div>
+        <div style="font-size:16px;margin-top:.5rem;">
+            Open PRs: {{.OpenPrCount}} &middot; Releases: {{.ReleaseCount}} &middot; Workflow OK: {{.WorkflowSuccessCount}} &middot; Failed: {{.WorkflowFailureCount}}
+        </div>
+    </div>
+    {{else}}
+    <div class="text-center text-muted py-5">No repositories found.</div>
+    {{end}}
+</div>
+{{end}}

@@ -1,5 +1,6 @@
 {{define "repos_tab"}}
 <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+    <button class="btn btn-outline-light btn-sm wall-mode-btn" style="display:none" onclick="window.location.href='/dashboard/wall'" title="Wall mode for e-ink displays">Wall Mode</button>
     <button class="btn btn-success btn-sm" hx-post="/repos/import-all" hx-target="#repo-grid" hx-swap="outerHTML" hx-indicator="#sync-spinner" onclick="startImportProgress()">
         Import All Repositories
     </button>
