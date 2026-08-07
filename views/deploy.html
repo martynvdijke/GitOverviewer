@@ -1,0 +1,74 @@
+{{define "deploy_tab"}}
+<div>
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <h4 class="mb-0 me-auto">Deploy Targets</h4>
+        <button class="btn btn-sm btn-outline-secondary" hx-get="/deploy" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+        </button>
+    </div>
+
+    {{if .DockerErr}}
+    <div class="alert alert-warning py-2 small mb-3" role="alert">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Docker label discovery unavailable — showing configured targets only.
+    </div>
+    {{end}}
+
+    {{if not .Enabled}}
+    <div class="card border-secondary text-center py-5">
+        <div class="card-body">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-secondary mb-3"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+            <h5 class="card-title">Deploy Subsystem Not Configured</h5>
+            <p class="card-text text-secondary small mx-auto" style="max-width:480px">
+                Set <code>DEPLOY_TARGETS</code> or add the <code>gitlens.deploy.target</code> Docker label to enable release-triggered deploys.
+                See <code>.env.example</code> and the README deploy section for setup instructions.
+            </p>
+        </div>
+    </div>
+    {{else}}
+    <div class="row g-2 mb-3">
+        <div class="col-auto">
+            <span class="badge bg-info text-dark fs-6 px-3 py-2">Backend: {{.Backend}}</span>
+        </div>
+        <div class="col-auto">
+            <span class="badge fs-6 px-3 py-2 {{if .GotifyOn}}bg-success{{else}}bg-secondary{{end}}">
+                Gotify: {{if .GotifyOn}}Connected{{else}}Not configured{{end}}
+            </span>
+        </div>
+        <div class="col-auto">
+            <span class="badge bg-secondary fs-6 px-3 py-2">{{.Total}} target(s)</span>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        {{range .Targets}}
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card border-secondary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title mb-0 text-truncate">{{.Repository}}</h6>
+                        <span class="badge bg-secondary ms-2 flex-shrink-0">{{.Source}}</span>
+                    </div>
+                    <table class="table table-sm table-borderless mb-0 small">
+                        <tr>
+                            <td class="text-secondary ps-0" style="width:80px">Image</td>
+                            <td class="text-break ps-0"><code>{{.Image}}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-secondary ps-0">Container</td>
+                            <td class="ps-0"><code>{{.Container}}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-secondary ps-0">Tag Strategy</td>
+                            <td class="ps-0"><span class="badge bg-dark">{{.TagStrategy}}</span></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    {{end}}
+</div>
+{{end}}
