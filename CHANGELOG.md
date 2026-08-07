@@ -1,3 +1,15 @@
+# [1.21.0](https://github.com/martynvdijke/gitlens/compare/v1.20.11...v1.21.0) (2026-08-07)
+
+
+### Bug Fixes
+
+* deploy dashboard tab renders correctly with real template and tests ([0283aaf](https://github.com/martynvdijke/gitlens/commit/0283aaf02e1aa0771e4eb773eec16f0e073a637b))
+
+
+### Features
+
+* e-ink mode — wall dashboard, chart adaptation, and htmx refresh ([19a221c](https://github.com/martynvdijke/gitlens/commit/19a221c2a968ef341d6ce07901122b6b73cddf3d))
+
 ## [1.20.11](https://github.com/martynvdijke/gitlens/compare/v1.20.10...v1.20.11) (2026-08-05)
 
 
