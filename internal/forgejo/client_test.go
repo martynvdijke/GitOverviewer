@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -510,5 +511,44 @@ func TestMergePullRequest_NotMergeable(t *testing.T) {
 	}
 	if msg == "" {
 		t.Error("expected provider message")
+	}
+}
+
+func TestClosePullRequest_Success(t *testing.T) {
+	s, baseURL := testServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PATCH" {
+			t.Errorf("expected PATCH, got %s", r.Method)
+		}
+		if !strings.HasSuffix(r.URL.Path, "/pulls/7") {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		body, _ := io.ReadAll(r.Body)
+		if !strings.Contains(string(body), `"state":"closed"`) {
+			t.Errorf("expected state closed in body, got: %s", string(body))
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	defer s.Close()
+
+	c := NewClient("", "", baseURL)
+	if err := c.ClosePullRequest(context.Background(), "token", "user", "repo", 7); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestClosePullRequest_Error(t *testing.T) {
+	s, baseURL := testServer(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"message":"Not Found"}`))
+	})
+	defer s.Close()
+
+	c := NewClient("", "", baseURL)
+	err := c.ClosePullRequest(context.Background(), "token", "user", "repo", 7)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "Not Found") {
+		t.Errorf("expected provider message in error, got: %v", err)
 	}
 }

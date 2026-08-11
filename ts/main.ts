@@ -176,22 +176,24 @@ function initChangelogBanner(): void {
 
 // ─── PR queue feedback ──────────────────────────────────────────────
 
-// Updates the "N selected" counter and Merge Selected button state.
+// Updates the "N selected" counter and Merge/Close Selected button state.
 function updatePRSelection(): void {
     const checked = document.querySelectorAll<HTMLInputElement>('.pr-queue-checkbox:checked');
     const countEl = document.getElementById('pr-selected-count');
     if (countEl) countEl.textContent = `${checked.length} selected`;
-    const btn = document.getElementById('pr-merge-selected-btn') as HTMLButtonElement | null;
-    if (btn) btn.disabled = checked.length === 0;
+    const mergeBtn = document.getElementById('pr-merge-selected-btn') as HTMLButtonElement | null;
+    if (mergeBtn) mergeBtn.disabled = checked.length === 0;
+    const closeBtn = document.getElementById('pr-close-selected-btn') as HTMLButtonElement | null;
+    if (closeBtn) closeBtn.disabled = checked.length === 0;
 }
 (window as any).updatePRSelection = updatePRSelection;
 
-// Guard for batch merge submit: requires at least one selected PR.
+// Guard for batch merge/close submit: requires at least one selected PR.
 function prQueueSubmitGuard(ev: Event): boolean {
     const checked = document.querySelectorAll<HTMLInputElement>('.pr-queue-checkbox:checked');
     if (checked.length === 0) {
         const status = document.getElementById('pr-queue-status');
-        if (status) status.innerHTML = '<span class="text-warning small">Select at least one PR to merge.</span>';
+        if (status) status.innerHTML = '<span class="text-warning small">Select at least one PR first.</span>';
         ev.preventDefault();
         return false;
     }
@@ -199,8 +201,8 @@ function prQueueSubmitGuard(ev: Event): boolean {
 }
 (window as any).prQueueSubmitGuard = prQueueSubmitGuard;
 
-// In-flight feedback: status line for batch merges and per-row control
-// lockout while a merge request is running. Delegated so it survives
+// In-flight feedback: status line for batch merges/closes and per-row
+// control lockout while a request is running. Delegated so it survives
 // HTMX swaps of #main-content.
 document.body.addEventListener('htmx:beforeRequest', (ev: Event) => {
     const elt = (ev as CustomEvent).detail?.elt as HTMLElement | undefined;
@@ -210,7 +212,11 @@ document.body.addEventListener('htmx:beforeRequest', (ev: Event) => {
         const checked = document.querySelectorAll<HTMLInputElement>('.pr-queue-checkbox:checked');
         const status = document.getElementById('pr-queue-status');
         if (status) {
-            status.innerHTML = `<span class="text-info small"><span class="spinner-border spinner-border-sm me-1"></span>Merging ${checked.length} PR(s)…</span>`;
+            // htmx stores the clicked submit button on the form's internal data
+            const internalData = (elt as any)['htmx-internal-data'];
+            const isClose = internalData?.lastButtonClicked?.formAction?.endsWith('/prs/batch-close');
+            const verb = isClose ? 'Closing' : 'Merging';
+            status.innerHTML = `<span class="text-info small"><span class="spinner-border spinner-border-sm me-1"></span>${verb} ${checked.length} PR(s)…</span>`;
         }
         checked.forEach((cb) => {
             const row = cb.closest('.pr-row, .pr-card');
@@ -221,7 +227,7 @@ document.body.addEventListener('htmx:beforeRequest', (ev: Event) => {
         return;
     }
 
-    if (elt.classList?.contains('pr-merge-btn')) {
+    if (elt.classList?.contains('pr-merge-btn') || elt.classList?.contains('pr-close-btn')) {
         const row = elt.closest('.pr-row, .pr-card');
         row?.querySelectorAll('input, button').forEach((el) => {
             (el as HTMLButtonElement).disabled = true;

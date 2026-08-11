@@ -65,6 +65,9 @@ type Provider interface {
 	// refuses the merge (conflicts, failing checks, etc.).
 	MergePullRequest(ctx context.Context, token, owner, repo string, number int) (merged bool, message string, err error)
 
+	// ClosePullRequest closes an open PR without merging it.
+	ClosePullRequest(ctx context.Context, token, owner, repo string, number int) error
+
 	// GetLatestWorkflowRun returns the most recent completed workflow
 	// run for `branch`. Providers without a workflow concept (e.g.
 	// Forgejo Actions may be disabled) may return ("", nil) to mean

@@ -159,6 +159,40 @@ func main() {
 		"hasWorkflowRun": func(status string) bool {
 			return status != "" && status != "unknown"
 		},
+		"prBuildClass": func(status string) string {
+			switch status {
+			case "success":
+				return "bg-success"
+			case "failure":
+				return "bg-danger"
+			case "in_progress", "action_required":
+				return "bg-warning text-dark"
+			default:
+				return "bg-secondary"
+			}
+		},
+		"prBuildLabel": func(status string) string {
+			switch status {
+			case "success":
+				return "Passing"
+			case "failure":
+				return "Failing"
+			case "in_progress":
+				return "Running"
+			case "action_required":
+				return "Action needed"
+			case "neutral":
+				return "Neutral"
+			case "cancelled":
+				return "Cancelled"
+			case "timed_out":
+				return "Timed out"
+			case "stale":
+				return "Stale"
+			default:
+				return "Unknown"
+			}
+		},
 		"printf": func(format string, args ...any) string {
 			return fmt.Sprintf(format, args...)
 		},
@@ -286,6 +320,8 @@ func main() {
 		authed.GET("/prs", middleware.HTMXOnly(), dashHandler.PRsTab)
 		authed.POST("/prs/merge", dashHandler.MergeSinglePR)
 		authed.POST("/prs/batch-merge", dashHandler.BatchMergePRs)
+		authed.POST("/prs/close", dashHandler.CloseSinglePR)
+		authed.POST("/prs/batch-close", dashHandler.BatchClosePRs)
 		authed.GET("/metrics", middleware.HTMXOnly(), dashHandler.MetricsTab)
 		authed.GET("/repos", middleware.HTMXOnly(), dashHandler.ListRepos)
 		authed.POST("/repos/:id/sync", dashHandler.SyncRepo)
@@ -293,7 +329,9 @@ func main() {
 		authed.GET("/repos/import-progress", dashHandler.ImportProgressHandler)
 		authed.GET("/repos/:id/prs", dashHandler.ListPullRequests)
 		authed.POST("/repos/:id/prs/:number/merge", dashHandler.MergePR)
+		authed.POST("/repos/:id/prs/:number/close", dashHandler.ClosePR)
 		authed.POST("/repos/:id/prs/merge-all", dashHandler.MergeAllPRs)
+		authed.POST("/repos/:id/prs/close-all", dashHandler.CloseAllPRs)
 		authed.POST("/repos/:id/renovate/rebase-all", dashHandler.RenovateRebaseAll)
 
 		authed.GET("/settings", middleware.HTMXOnly(), settingsHandler.Index)

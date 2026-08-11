@@ -22,12 +22,15 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// mergeFakeProvider is a test double for provider.Provider whose merge
-// behavior is scriptable per PR number.
+// mergeFakeProvider is a test double for provider.Provider whose merge and
+// close behavior is scriptable per PR number.
 type mergeFakeProvider struct {
 	name       string
 	mergeFn    func(number int) (bool, string, error)
 	mergeCalls []int
+	closeFn    func(number int) error
+	closeCalls []int
+	listPRs    []*ghclient.PullRequest
 }
 
 func (f *mergeFakeProvider) Name() string { return f.name }
@@ -53,7 +56,7 @@ func (f *mergeFakeProvider) ListReleases(ctx context.Context, token, owner, repo
 	return nil, nil
 }
 func (f *mergeFakeProvider) ListPullRequests(ctx context.Context, token, owner, repo string) ([]*ghclient.PullRequest, error) {
-	return nil, nil
+	return f.listPRs, nil
 }
 func (f *mergeFakeProvider) ListRecentlyMergedPRs(ctx context.Context, token, owner, repo string) ([]*ghclient.PullRequest, error) {
 	return nil, nil
@@ -61,6 +64,13 @@ func (f *mergeFakeProvider) ListRecentlyMergedPRs(ctx context.Context, token, ow
 func (f *mergeFakeProvider) MergePullRequest(ctx context.Context, token, owner, repo string, number int) (bool, string, error) {
 	f.mergeCalls = append(f.mergeCalls, number)
 	return f.mergeFn(number)
+}
+func (f *mergeFakeProvider) ClosePullRequest(ctx context.Context, token, owner, repo string, number int) error {
+	f.closeCalls = append(f.closeCalls, number)
+	if f.closeFn == nil {
+		return nil
+	}
+	return f.closeFn(number)
 }
 func (f *mergeFakeProvider) GetLatestWorkflowRun(ctx context.Context, token, owner, repo, branch string) (*ghclient.WorkflowRun, error) {
 	return nil, fmt.Errorf("not implemented")
@@ -85,10 +95,12 @@ func newMergeTestEngine(t *testing.T, h *DashboardHandler, userID int64) *gin.En
 	gin.SetMode(gin.TestMode)
 	engine := gin.New()
 	engine.SetHTMLTemplate(template.Must(template.New("").Parse(
-		`{{define "prs_tab_with_toast"}}TYPE={{.ToastType}} MSG={{.ToastMessage}} DET={{.ToastDetails}} MERGED={{range $k, $v := .MergedSet}}{{$k}};{{end}}{{end}}`)))
+		`{{define "prs_tab_with_toast"}}TYPE={{.ToastType}} MSG={{.ToastMessage}} DET={{.ToastDetails}} MERGED={{range $k, $v := .MergedSet}}{{$k}};{{end}} CLOSED={{range $k, $v := .ClosedSet}}{{$k}};{{end}}{{end}}`)))
 	authed := engine.Group("/", func(c *gin.Context) { c.Set("user_id", userID); c.Next() })
 	authed.POST("/prs/merge", h.MergeSinglePR)
 	authed.POST("/prs/batch-merge", h.BatchMergePRs)
+	authed.POST("/prs/close", h.CloseSinglePR)
+	authed.POST("/prs/batch-close", h.BatchClosePRs)
 	return engine
 }
 
@@ -245,5 +257,273 @@ func TestBatchMergePRs_PartialFailureSummary(t *testing.T) {
 	// Merged PR is optimistically marked for the re-rendered queue.
 	if !strings.Contains(body, fmt.Sprintf("MERGED=%d:1;", repo.ID)) {
 		t.Errorf("expected merged set to contain repoID:1, got: %s", body)
+	}
+}
+
+func TestCloseSinglePR_Success(t *testing.T) {
+	fake := &mergeFakeProvider{name: "fake", mergeFn: func(n int) (bool, string, error) {
+		return true, "", nil
+	}}
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": fake})
+	u := createMergeUser(t, client)
+	repo := createMergeRepo(t, client, u.ID, "fake")
+	engine := newMergeTestEngine(t, h, int64(u.ID))
+
+	w := postJSON(engine, "/prs/close", fmt.Sprintf(`{"repo_id":%d,"pr_number":7}`, repo.ID))
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "MSG=PR #7 closed") {
+		t.Errorf("expected success toast, got: %s", body)
+	}
+	if !strings.Contains(body, "TYPE=success") {
+		t.Errorf("expected success type, got: %s", body)
+	}
+	if len(fake.closeCalls) != 1 || fake.closeCalls[0] != 7 {
+		t.Errorf("expected provider close called for PR 7, got %v", fake.closeCalls)
+	}
+	if !strings.Contains(body, fmt.Sprintf("CLOSED=%d:7;", repo.ID)) {
+		t.Errorf("expected closed set to contain repoID:7, got: %s", body)
+	}
+}
+
+func TestCloseSinglePR_ProviderErrorReturns200Danger(t *testing.T) {
+	fake := &mergeFakeProvider{name: "fake", closeFn: func(n int) error {
+		return fmt.Errorf("404 Not Found")
+	}}
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": fake})
+	u := createMergeUser(t, client)
+	repo := createMergeRepo(t, client, u.ID, "fake")
+	engine := newMergeTestEngine(t, h, int64(u.ID))
+
+	w := postJSON(engine, "/prs/close", fmt.Sprintf(`{"repo_id":%d,"pr_number":3}`, repo.ID))
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 (HTMX partial), got %d: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "TYPE=danger") || !strings.Contains(body, "Failed to close #3") {
+		t.Errorf("expected danger toast, got: %s", body)
+	}
+	if len(fake.closeCalls) != 1 || fake.closeCalls[0] != 3 {
+		t.Errorf("expected provider close called for PR 3, got %v", fake.closeCalls)
+	}
+}
+
+func TestCloseSinglePR_InvalidRequest(t *testing.T) {
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": &mergeFakeProvider{name: "fake"}})
+	u := createMergeUser(t, client)
+	createMergeRepo(t, client, u.ID, "fake")
+	engine := newMergeTestEngine(t, h, int64(u.ID))
+
+	w := postJSON(engine, "/prs/close", `not-json`)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestBatchClosePRs_PartialFailureSummary(t *testing.T) {
+	fake := &mergeFakeProvider{name: "fake", closeFn: func(n int) error {
+		if n == 2 {
+			return fmt.Errorf("403 Forbidden")
+		}
+		return nil
+	}}
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": fake})
+	u := createMergeUser(t, client)
+	repo := createMergeRepo(t, client, u.ID, "fake")
+	engine := newMergeTestEngine(t, h, int64(u.ID))
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/prs/batch-close",
+		strings.NewReader(fmt.Sprintf("pr_ids=%d%%3A1&pr_ids=%d%%3A2", repo.ID, repo.ID)))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "MSG=Closed 1/2") {
+		t.Errorf("expected partial summary, got: %s", body)
+	}
+	if !strings.Contains(body, "TYPE=warning") {
+		t.Errorf("expected warning type, got: %s", body)
+	}
+	if !strings.Contains(body, "Permission denied") {
+		t.Errorf("expected friendly failure reason in details, got: %s", body)
+	}
+	if !strings.Contains(body, fmt.Sprintf("CLOSED=%d:1;", repo.ID)) {
+		t.Errorf("expected closed set to contain repoID:1, got: %s", body)
+	}
+}
+
+func TestBatchClosePRs_AllSuccess(t *testing.T) {
+	fake := &mergeFakeProvider{name: "fake"}
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": fake})
+	u := createMergeUser(t, client)
+	repo := createMergeRepo(t, client, u.ID, "fake")
+	engine := newMergeTestEngine(t, h, int64(u.ID))
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/prs/batch-close",
+		strings.NewReader(fmt.Sprintf("pr_ids=%d%%3A1&pr_ids=%d%%3A2", repo.ID, repo.ID)))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "MSG=All 2 PR(s) closed successfully!") {
+		t.Errorf("expected success summary, got: %s", body)
+	}
+	if !strings.Contains(body, "TYPE=success") {
+		t.Errorf("expected success type, got: %s", body)
+	}
+	if len(fake.closeCalls) != 2 {
+		t.Errorf("expected provider close called twice, got %v", fake.closeCalls)
+	}
+}
+
+func TestBatchClosePRs_NoSelection(t *testing.T) {
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": &mergeFakeProvider{name: "fake"}})
+	u := createMergeUser(t, client)
+	createMergeRepo(t, client, u.ID, "fake")
+	engine := newMergeTestEngine(t, h, int64(u.ID))
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/prs/batch-close", strings.NewReader(``))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestClosePR_Success(t *testing.T) {
+	fake := &mergeFakeProvider{name: "fake", mergeFn: func(n int) (bool, string, error) {
+		return true, "", nil
+	}}
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": fake})
+	u := createMergeUser(t, client)
+	repo := createMergeRepo(t, client, u.ID, "fake")
+
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.SetHTMLTemplate(template.Must(template.New("").Parse(
+		`{{define "repo_card_with_toast"}}TYPE={{.ToastType}} MSG={{.ToastMessage}} DET={{.ToastDetails}}{{end}}`)))
+	authed := engine.Group("/", func(c *gin.Context) { c.Set("user_id", int64(u.ID)); c.Next() })
+	authed.POST("/repos/:id/prs/:number/close", h.ClosePR)
+
+	w := postJSON(engine, fmt.Sprintf("/repos/%d/prs/7/close", repo.ID), `{}`)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "MSG=PR #7 closed") || !strings.Contains(body, "TYPE=success") {
+		t.Errorf("expected success toast, got: %s", body)
+	}
+	if len(fake.closeCalls) != 1 || fake.closeCalls[0] != 7 {
+		t.Errorf("expected provider close called for PR 7, got %v", fake.closeCalls)
+	}
+}
+
+func TestClosePR_ProviderErrorReturns200Danger(t *testing.T) {
+	fake := &mergeFakeProvider{name: "fake", closeFn: func(n int) error {
+		return fmt.Errorf("403 Forbidden")
+	}}
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": fake})
+	u := createMergeUser(t, client)
+	repo := createMergeRepo(t, client, u.ID, "fake")
+
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.SetHTMLTemplate(template.Must(template.New("").Parse(
+		`{{define "repo_card_with_toast"}}TYPE={{.ToastType}} MSG={{.ToastMessage}} DET={{.ToastDetails}}{{end}}`)))
+	authed := engine.Group("/", func(c *gin.Context) { c.Set("user_id", int64(u.ID)); c.Next() })
+	authed.POST("/repos/:id/prs/:number/close", h.ClosePR)
+
+	w := postJSON(engine, fmt.Sprintf("/repos/%d/prs/3/close", repo.ID), `{}`)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "TYPE=danger") || !strings.Contains(body, "Permission denied") {
+		t.Errorf("expected danger toast with friendly message, got: %s", body)
+	}
+}
+
+func TestCloseAllPRs_Success(t *testing.T) {
+	fake := &mergeFakeProvider{
+		name: "fake",
+		closeFn: func(n int) error {
+			return nil
+		},
+		listPRs: []*ghclient.PullRequest{
+			{Number: 1, Title: "one", Author: "a", CreatedAt: time.Now(), HeadRef: "f1", BaseRef: "main"},
+			{Number: 2, Title: "two", Author: "a", CreatedAt: time.Now(), HeadRef: "f2", BaseRef: "main"},
+		},
+	}
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": fake})
+	u := createMergeUser(t, client)
+	repo := createMergeRepo(t, client, u.ID, "fake")
+
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.SetHTMLTemplate(template.Must(template.New("").Parse(
+		`{{define "repo_card_with_toast"}}TYPE={{.ToastType}} MSG={{.ToastMessage}} DET={{.ToastDetails}}{{end}}`)))
+	authed := engine.Group("/", func(c *gin.Context) { c.Set("user_id", int64(u.ID)); c.Next() })
+	authed.POST("/repos/:id/prs/close-all", h.CloseAllPRs)
+
+	w := postJSON(engine, fmt.Sprintf("/repos/%d/prs/close-all", repo.ID), `{}`)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "MSG=All 2 PR(s) closed successfully!") || !strings.Contains(body, "TYPE=success") {
+		t.Errorf("expected success toast, got: %s", body)
+	}
+	if len(fake.closeCalls) != 2 {
+		t.Errorf("expected provider close called twice, got %v", fake.closeCalls)
+	}
+}
+
+func TestCloseAllPRs_PartialFailure(t *testing.T) {
+	fake := &mergeFakeProvider{
+		name: "fake",
+		closeFn: func(n int) error {
+			if n == 2 {
+				return fmt.Errorf("403 Forbidden")
+			}
+			return nil
+		},
+		listPRs: []*ghclient.PullRequest{
+			{Number: 1, Title: "one", Author: "a", CreatedAt: time.Now(), HeadRef: "f1", BaseRef: "main"},
+			{Number: 2, Title: "two", Author: "a", CreatedAt: time.Now(), HeadRef: "f2", BaseRef: "main"},
+		},
+	}
+	h, client := newMergeTestHandler(t, map[string]provider.Provider{"fake": fake})
+	u := createMergeUser(t, client)
+	repo := createMergeRepo(t, client, u.ID, "fake")
+
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.SetHTMLTemplate(template.Must(template.New("").Parse(
+		`{{define "repo_card_with_toast"}}TYPE={{.ToastType}} MSG={{.ToastMessage}} DET={{.ToastDetails}}{{end}}`)))
+	authed := engine.Group("/", func(c *gin.Context) { c.Set("user_id", int64(u.ID)); c.Next() })
+	authed.POST("/repos/:id/prs/close-all", h.CloseAllPRs)
+
+	w := postJSON(engine, fmt.Sprintf("/repos/%d/prs/close-all", repo.ID), `{}`)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, "MSG=Closed 1 PR(s)") || !strings.Contains(body, "TYPE=warning") {
+		t.Errorf("expected warning toast, got: %s", body)
+	}
+	if !strings.Contains(body, "Failed: [2]") {
+		t.Errorf("expected failed PR numbers in details, got: %s", body)
 	}
 }

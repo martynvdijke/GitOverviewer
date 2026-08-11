@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -756,6 +757,133 @@ func TestMergePullRequest_Error(t *testing.T) {
 	_, _, err := c.MergePullRequest("token", "user", "repo", 1)
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestClosePullRequest_Success(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PATCH" {
+			t.Errorf("expected PATCH, got %s", r.Method)
+		}
+		if r.URL.Path != "/repos/user/repo/pulls/7" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		body, _ := io.ReadAll(r.Body)
+		if !strings.Contains(string(body), `"state":"closed"`) {
+			t.Errorf("expected state closed in body, got: %s", string(body))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"state": "closed"}`))
+	}))
+	defer srv.Close()
+
+	c := NewClient("", "")
+	c.APIURL = srv.URL
+
+	if err := c.ClosePullRequest("token", "user", "repo", 7); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestClosePullRequest_Error(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"message": "Not Found"}`))
+	}))
+	defer srv.Close()
+
+	c := NewClient("", "")
+	c.APIURL = srv.URL
+
+	err := c.ClosePullRequest("token", "user", "repo", 1)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestGetWorkflowRunsForRepo(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("branch") != "" {
+			t.Errorf("expected no branch filter, got %q", r.URL.Query().Get("branch"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"workflow_runs":[
+			{"id":1,"status":"completed","conclusion":"success","head_sha":"abc123"},
+			{"id":2,"status":"in_progress","conclusion":null,"head_sha":"def456"}
+		]}`))
+	}))
+	defer srv.Close()
+
+	c := NewClient("", "")
+	c.APIURL = srv.URL
+
+	runs, err := c.GetWorkflowRunsForRepo("token", "user", "repo", 30)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(runs) != 2 {
+		t.Fatalf("expected 2 runs, got %d", len(runs))
+	}
+	if runs[0].HeadSHA != "abc123" || runs[0].Status != "completed" {
+		t.Errorf("unexpected first run: %+v", runs[0])
+	}
+	if runs[1].HeadSHA != "def456" || runs[1].Status != "in_progress" {
+		t.Errorf("unexpected second run: %+v", runs[1])
+	}
+}
+
+func TestGetWorkflowRunsForRepo_Empty(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"workflow_runs":[]}`))
+	}))
+	defer srv.Close()
+
+	c := NewClient("", "")
+	c.APIURL = srv.URL
+
+	runs, err := c.GetWorkflowRunsForRepo("token", "user", "repo", 30)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(runs) != 0 {
+		t.Fatalf("expected 0 runs, got %d", len(runs))
+	}
+}
+
+func TestListPullRequests_IncludesHeadSHA(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`[
+			{
+				"number": 1,
+				"title": "Add feature",
+				"user": {"login": "dev1"},
+				"created_at": "2024-06-01T10:00:00Z",
+				"html_url": "https://github.com/user/repo/pull/1",
+				"head": {"ref": "feature-branch", "sha": "abc123"},
+				"base": {"ref": "main"},
+				"mergeable_state": "clean"
+			}
+		]`))
+	}))
+	defer srv.Close()
+
+	c := NewClient("", "")
+	c.APIURL = srv.URL
+
+	prs, err := c.ListPullRequests("token", "user", "repo")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(prs) != 1 {
+		t.Fatalf("expected 1 PR, got %d", len(prs))
+	}
+	if prs[0].HeadSHA != "abc123" {
+		t.Errorf("expected head sha abc123, got %q", prs[0].HeadSHA)
+	}
+	if prs[0].MergeableState != "clean" {
+		t.Errorf("expected mergeable state clean, got %q", prs[0].MergeableState)
 	}
 }
 

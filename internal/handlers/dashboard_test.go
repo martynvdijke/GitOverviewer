@@ -757,6 +757,100 @@ func TestMergeAllPRs_InvalidRepoID(t *testing.T) {
 	}
 }
 
+func TestClosePR_InvalidRepoID(t *testing.T) {
+	handler, store, client := newTestDashboardHandler(t)
+	u, _ := client.User.Create().
+		SetGithubID(910).SetLogin("closetest").SetAccessToken("tok").Save(context.Background())
+
+	sessionID := store.Set(int64(u.ID))
+	w := httptest.NewRecorder()
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.POST("/repos/:id/prs/:number/close", func(c *gin.Context) {
+		c.Set("user_id", int64(u.ID))
+		handler.ClosePR(c)
+	})
+	req := httptest.NewRequest("POST", "/repos/invalid/prs/1/close", http.NoBody)
+	req.AddCookie(&http.Cookie{Name: "gitlens_session", Value: sessionID})
+	engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for invalid repo ID, got %d", w.Code)
+	}
+}
+
+func TestClosePR_RepoNotFound(t *testing.T) {
+	handler, store, client := newTestDashboardHandler(t)
+	u, _ := client.User.Create().
+		SetGithubID(911).SetLogin("closenotfound").SetAccessToken("tok").Save(context.Background())
+
+	sessionID := store.Set(int64(u.ID))
+	w := httptest.NewRecorder()
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.POST("/repos/:id/prs/:number/close", func(c *gin.Context) {
+		c.Set("user_id", int64(u.ID))
+		handler.ClosePR(c)
+	})
+	req := httptest.NewRequest("POST", "/repos/999/prs/1/close", http.NoBody)
+	req.AddCookie(&http.Cookie{Name: "gitlens_session", Value: sessionID})
+	engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for non-existent repo, got %d", w.Code)
+	}
+}
+
+func TestClosePR_InvalidPRNumber(t *testing.T) {
+	handler, store, client := newTestDashboardHandler(t)
+	u, _ := client.User.Create().
+		SetGithubID(912).SetLogin("closeinvalidpr").SetAccessToken("tok").Save(context.Background())
+
+	client.Repository.Create().
+		SetGithubID(2).SetOwner("user").SetName("closepr").
+		SetFullName("user/closepr").SetHTMLURL("https://github.com/user/closepr").
+		SetDefaultBranch("main").SetUserID(u.ID).
+		Save(context.Background())
+
+	sessionID := store.Set(int64(u.ID))
+	w := httptest.NewRecorder()
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.POST("/repos/:id/prs/:number/close", func(c *gin.Context) {
+		c.Set("user_id", int64(u.ID))
+		handler.ClosePR(c)
+	})
+	req := httptest.NewRequest("POST", "/repos/2/prs/invalid/close", http.NoBody)
+	req.AddCookie(&http.Cookie{Name: "gitlens_session", Value: sessionID})
+	engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for invalid PR number, got %d", w.Code)
+	}
+}
+
+func TestCloseAllPRs_InvalidRepoID(t *testing.T) {
+	handler, store, client := newTestDashboardHandler(t)
+	u, _ := client.User.Create().
+		SetGithubID(913).SetLogin("closeall").SetAccessToken("tok").Save(context.Background())
+
+	sessionID := store.Set(int64(u.ID))
+	w := httptest.NewRecorder()
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	engine.POST("/repos/:id/prs/close-all", func(c *gin.Context) {
+		c.Set("user_id", int64(u.ID))
+		handler.CloseAllPRs(c)
+	})
+	req := httptest.NewRequest("POST", "/repos/invalid/prs/close-all", http.NoBody)
+	req.AddCookie(&http.Cookie{Name: "gitlens_session", Value: sessionID})
+	engine.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for invalid repo ID, got %d", w.Code)
+	}
+}
+
 // ─── ReposTab Tests ───────────────────────────────────────────────
 
 func TestReposTab_Renders(t *testing.T) {
@@ -1205,6 +1299,8 @@ func serveIndexRequest(handler gin.HandlerFunc, path string, cookies ...*http.Co
 		"workflowIcon":         func(status string) string { return "" },
 		"workflowLabel":        func(status string) string { return "" },
 		"hasWorkflowRun":       func(status string) bool { return false },
+		"prBuildClass":         func(status string) string { return "" },
+		"prBuildLabel":         func(status string) string { return "" },
 		"printf":               func(format string, args ...any) string { return "" },
 		"releaseIcon":          func(conclusion string) string { return "" },
 		"releaseLabel":         func(conclusion string) string { return "" },

@@ -21,6 +21,7 @@ type fakeProvider struct {
 	pages        map[int]fakePage // page -> result
 	errPages     map[int]error    // page -> injected error
 	commitsSince []*ghclient.Commit
+	listPRs      []*ghclient.PullRequest
 }
 
 type fakePage struct {
@@ -56,13 +57,16 @@ func (f *fakeProvider) ListReleases(ctx context.Context, token, owner, repo stri
 	return nil, nil
 }
 func (f *fakeProvider) ListPullRequests(ctx context.Context, token, owner, repo string) ([]*ghclient.PullRequest, error) {
-	return nil, nil
+	return f.listPRs, nil
 }
 func (f *fakeProvider) ListRecentlyMergedPRs(ctx context.Context, token, owner, repo string) ([]*ghclient.PullRequest, error) {
 	return nil, nil
 }
 func (f *fakeProvider) MergePullRequest(ctx context.Context, token, owner, repo string, number int) (bool, string, error) {
 	return false, "", fmt.Errorf("not implemented")
+}
+func (f *fakeProvider) ClosePullRequest(ctx context.Context, token, owner, repo string, number int) error {
+	return fmt.Errorf("not implemented")
 }
 func (f *fakeProvider) GetLatestWorkflowRun(ctx context.Context, token, owner, repo, branch string) (*ghclient.WorkflowRun, error) {
 	return nil, fmt.Errorf("not implemented")

@@ -83,5 +83,10 @@ func (a *GitHubAdapter) MergePullRequest(ctx context.Context, token, owner, repo
 	return a.Client.MergePullRequest(token, owner, repo, number)
 }
 
+func (a *GitHubAdapter) ClosePullRequest(ctx context.Context, token, owner, repo string, number int) error {
+	_ = ctx
+	return a.Client.ClosePullRequest(token, owner, repo, number)
+}
+
 // Compile-time interface check.
 var _ Provider = (*GitHubAdapter)(nil)

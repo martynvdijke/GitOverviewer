@@ -287,7 +287,13 @@ task test:e2e
 | `/settings/forgejo/warning/dismiss` | POST | Dismiss cross-provider warning for a repo |
 | `/repos/{id}/prs` | GET | List pull requests for a repo |
 | `/repos/{id}/prs/{number}/merge` | POST | Merge a single pull request |
+| `/repos/{id}/prs/{number}/close` | POST | Close a single pull request |
 | `/repos/{id}/prs/merge-all` | POST | Merge all open pull requests |
+| `/repos/{id}/prs/close-all` | POST | Close all open pull requests |
+| `/prs/merge` | POST | Merge a single PR from the unified queue |
+| `/prs/batch-merge` | POST | Merge selected PRs from the unified queue |
+| `/prs/close` | POST | Close a single PR from the unified queue |
+| `/prs/batch-close` | POST | Close selected PRs from the unified queue |
 | `/webhook/github` | POST | GitHub webhook — push (sync) and release (deploy) events |
 | `/ws` | GET | WebSocket endpoint |
 

@@ -354,6 +354,28 @@ func (s *Syncer) syncPullRequests(ctx context.Context, p provider.Provider, toke
 
 	updated.SetOpenPrCount(len(prs))
 
+	// Build status per PR (GitHub only): match workflow runs to PRs by
+	// head commit SHA. Forgejo repos skip this (Forgejo Actions is
+	// opt-in) and show no badge.
+	var buildByHeadSHA map[string]string
+	if repo.Provider == "github" && len(prs) > 0 {
+		runs, err := s.gh.GetWorkflowRunsForRepo(token, repo.Owner, repo.Name, 30)
+		if err != nil {
+			log.Printf("Error fetching workflow runs for %s: %v", repo.FullName, err)
+		} else {
+			buildByHeadSHA = make(map[string]string, len(runs))
+			for _, r := range runs {
+				if r.HeadSHA == "" {
+					continue
+				}
+				if _, ok := buildByHeadSHA[r.HeadSHA]; ok {
+					continue // keep the first (most recent) run per head
+				}
+				buildByHeadSHA[r.HeadSHA] = workflowRunBuildStatus(r)
+			}
+		}
+	}
+
 	if len(prs) > 0 {
 		type prSummary struct {
 			Number         int    `json:"n"`
@@ -364,6 +386,7 @@ func (s *Syncer) syncPullRequests(ctx context.Context, p provider.Provider, toke
 			HeadRef        string `json:"hr"`
 			BaseRef        string `json:"br"`
 			MergeableState string `json:"ms,omitempty"`
+			BuildStatus    string `json:"bs,omitempty"`
 		}
 		var summaries []prSummary
 		for _, pr := range prs {
@@ -376,6 +399,7 @@ func (s *Syncer) syncPullRequests(ctx context.Context, p provider.Provider, toke
 				HeadRef:        pr.HeadRef,
 				BaseRef:        pr.BaseRef,
 				MergeableState: pr.MergeableState,
+				BuildStatus:    buildByHeadSHA[pr.HeadSHA],
 			})
 		}
 		data, err := json.Marshal(summaries)
@@ -384,6 +408,21 @@ func (s *Syncer) syncPullRequests(ctx context.Context, p provider.Provider, toke
 		}
 	} else {
 		updated.SetPullRequests("[]")
+	}
+}
+
+// workflowRunBuildStatus reduces a workflow run to the coarse build status
+// used by the PR overview badge. "in_progress" covers queued/running runs and
+// conclusions we don't special-case.
+func workflowRunBuildStatus(r *github.WorkflowRun) string {
+	if r.Status != "completed" {
+		return "in_progress"
+	}
+	switch r.Conclusion {
+	case "success", "failure", "neutral", "cancelled", "timed_out", "action_required", "stale":
+		return r.Conclusion
+	default:
+		return "in_progress"
 	}
 }
 

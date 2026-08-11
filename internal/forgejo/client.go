@@ -464,6 +464,49 @@ func (c *Client) MergePullRequest(ctx context.Context, token, owner, repo string
 	return false, "", fmt.Errorf("Forgejo API error: %s: %s", resp.Status, msg)
 }
 
+// ClosePullRequest closes an open PR
+// (Gitea: PATCH /repos/{owner}/{repo}/pulls/{index} {"state":"closed"}).
+func (c *Client) ClosePullRequest(ctx context.Context, token, owner, repo string, number int) error {
+	u := c.apiURL(c.defaultURL, fmt.Sprintf("/repos/%s/%s/pulls/%d", owner, repo, number))
+	payload := struct {
+		State string `json:"state"`
+	}{State: "closed"}
+	var buf strings.Builder
+	if err := json.NewEncoder(&buf).Encode(payload); err != nil {
+		return fmt.Errorf("encoding close request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PATCH", u, strings.NewReader(buf.String()))
+	if err != nil {
+		return fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	if token != "" {
+		req.Header.Set("Authorization", "token "+token)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("doing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		return nil
+	}
+
+	body, _ := io.ReadAll(resp.Body)
+	var errResp struct {
+		Message string `json:"message"`
+	}
+	_ = json.Unmarshal(body, &errResp)
+	msg := strings.TrimSpace(errResp.Message)
+	if msg == "" {
+		msg = strings.TrimSpace(string(body))
+	}
+	return fmt.Errorf("Forgejo API error: %s: %s", resp.Status, msg)
+}
+
 // --- Releases ---
 
 // ListReleases implements provider.Provider.

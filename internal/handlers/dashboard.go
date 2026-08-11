@@ -347,6 +347,9 @@ type PRQueueItem struct {
 	BaseRef      string
 	// MergeableState is the provider's mergeability hint, if reported.
 	MergeableState string
+	// BuildStatus is the CI build status for the PR's head commit
+	// (e.g. "success", "failure", "in_progress"). Empty when unknown.
+	BuildStatus string
 }
 
 // prSummary is the JSON-unmarshalled form of a pull request stored on a Repository.
@@ -359,6 +362,7 @@ type prSummary struct {
 	HeadRef        string `json:"hr"`
 	BaseRef        string `json:"br"`
 	MergeableState string `json:"ms,omitempty"`
+	BuildStatus    string `json:"bs,omitempty"`
 }
 
 // sortByBuildStatus orders repos by workflow severity: failures first, then unknown, then success, then no workflows.
@@ -652,6 +656,7 @@ func (h *DashboardHandler) fetchPRTabData(ctx context.Context, userID int, filte
 				HeadRef:        pr.HeadRef,
 				BaseRef:        pr.BaseRef,
 				MergeableState: pr.MergeableState,
+				BuildStatus:    pr.BuildStatus,
 			})
 		}
 	}
@@ -677,6 +682,7 @@ func (h *DashboardHandler) fetchPRTabData(ctx context.Context, userID int, filte
 		"FilterRepo": filterRepo,
 		"ActiveTab":  "prs",
 		"MergedSet":  map[string]bool{},
+		"ClosedSet":  map[string]bool{},
 	}, nil
 }
 
@@ -855,6 +861,151 @@ func (h *DashboardHandler) BatchMergePRs(c *gin.Context) {
 	c.HTML(http.StatusOK, "prs_tab_with_toast", data)
 }
 
+// CloseSinglePR closes a single PR from the unified queue.
+func (h *DashboardHandler) CloseSinglePR(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+
+	var req mergeRequest
+	if err := c.ShouldBind(&req); err != nil {
+		c.String(http.StatusBadRequest, "Invalid request")
+		return
+	}
+
+	ctx := c.Request.Context()
+	r, err := h.client.Repository.Query().
+		Where(
+			repository.ID(req.RepoID),
+			repository.HasUserWith(user.ID(int(userID))),
+		).
+		Only(ctx)
+	if err != nil {
+		c.String(http.StatusNotFound, "Repository not found")
+		return
+	}
+
+	u, err := h.client.User.Get(ctx, int(userID))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "User not found")
+		return
+	}
+
+	renderQueue := func(toastType, toastMsg, toastDetails string, closedSet map[string]bool) {
+		data, fetchErr := h.fetchPRTabData(ctx, int(userID), c.Query("repo"))
+		if fetchErr != nil {
+			c.String(http.StatusOK, toastMsg)
+			return
+		}
+		data["ToastType"] = toastType
+		data["ToastMessage"] = toastMsg
+		if toastDetails != "" {
+			data["ToastDetails"] = toastDetails
+		}
+		if closedSet != nil {
+			data["ClosedSet"] = closedSet
+		}
+		c.HTML(http.StatusOK, "prs_tab_with_toast", data)
+	}
+
+	p, token := h.syncer.ProviderFor(u, r)
+	if err := p.ClosePullRequest(ctx, token, r.Owner, r.Name, req.PRNumber); err != nil {
+		log.Printf("Error closing PR #%d for %s: %v", req.PRNumber, r.FullName, err)
+		renderQueue("danger", fmt.Sprintf("Failed to close #%d", req.PRNumber), friendlyMergeError(err), nil)
+		return
+	}
+
+	// Respond immediately; refresh repo state in the background.
+	h.syncer.SyncOneBackground(r)
+	renderQueue("success", fmt.Sprintf("PR #%d closed", req.PRNumber), "",
+		map[string]bool{fmt.Sprintf("%d:%d", r.ID, req.PRNumber): true})
+}
+
+// BatchClosePRs closes selected PRs from the unified queue.
+func (h *DashboardHandler) BatchClosePRs(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+	ctx := c.Request.Context()
+
+	prIDs := c.PostFormArray("pr_ids")
+	if len(prIDs) == 0 {
+		c.String(http.StatusBadRequest, "No PRs selected")
+		return
+	}
+
+	u, err := h.client.User.Get(ctx, int(userID))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "User not found")
+		return
+	}
+
+	var closed []string
+	var failed []string
+	// Optimistic "Closed ✓" marks until the background sync reconciles.
+	closedSet := make(map[string]bool)
+	// Dedupe background syncs: one per affected repo, fired after the loop.
+	affectedRepos := make(map[int]*ent.Repository)
+
+	for _, id := range prIDs {
+		parts := strings.SplitN(id, ":", 2)
+		if len(parts) != 2 {
+			failed = append(failed, id)
+			continue
+		}
+		repoID, err := strconv.Atoi(parts[0])
+		if err != nil {
+			failed = append(failed, id)
+			continue
+		}
+		prNumber, err := strconv.Atoi(parts[1])
+		if err != nil {
+			failed = append(failed, id)
+			continue
+		}
+
+		r, err := h.client.Repository.Query().
+			Where(
+				repository.ID(repoID),
+				repository.HasUserWith(user.ID(int(userID))),
+			).
+			Only(ctx)
+		if err != nil {
+			failed = append(failed, fmt.Sprintf("#%d (repo not found)", prNumber))
+			continue
+		}
+
+		p, token := h.syncer.ProviderFor(u, r)
+		if err := p.ClosePullRequest(ctx, token, r.Owner, r.Name, prNumber); err != nil {
+			failed = append(failed, fmt.Sprintf("#%d (%s)", prNumber, friendlyMergeError(err)))
+			continue
+		}
+		closed = append(closed, fmt.Sprintf("#%d", prNumber))
+		closedSet[fmt.Sprintf("%d:%d", r.ID, prNumber)] = true
+		affectedRepos[r.ID] = r
+	}
+
+	// Refresh affected repos in the background (deduped inside the syncer).
+	for _, r := range affectedRepos {
+		h.syncer.SyncOneBackground(r)
+	}
+
+	total := len(closed) + len(failed)
+
+	data, err := h.fetchPRTabData(ctx, int(userID), c.Query("repo"))
+	if err != nil {
+		c.String(http.StatusOK, "Closed %d/%d", len(closed), total)
+		return
+	}
+
+	data["ClosedSet"] = closedSet
+	if len(failed) == 0 {
+		data["ToastType"] = "success"
+		data["ToastMessage"] = fmt.Sprintf("All %d PR(s) closed successfully!", total)
+	} else {
+		data["ToastType"] = "warning"
+		data["ToastMessage"] = fmt.Sprintf("Closed %d/%d", len(closed), total)
+		data["ToastDetails"] = fmt.Sprintf("Failed: %s", strings.Join(failed, ", "))
+	}
+	c.HTML(http.StatusOK, "prs_tab_with_toast", data)
+}
+
 // MetricsTab renders the DORA metrics page.
 func (h *DashboardHandler) MetricsTab(c *gin.Context) {
 	userID := c.GetInt64("user_id")
@@ -995,6 +1146,123 @@ func (h *DashboardHandler) MergeAllPRs(c *gin.Context) {
 			"Repo":         r,
 			"ToastType":    "success",
 			"ToastMessage": fmt.Sprintf("All %d PR(s) merged successfully!", len(prs)),
+		})
+	}
+}
+
+// ClosePR closes a single PR from a repo card.
+func (h *DashboardHandler) ClosePR(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+	repoID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "Invalid repo ID")
+		return
+	}
+	prNumber, err := strconv.Atoi(c.Param("number"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "Invalid PR number")
+		return
+	}
+
+	ctx := c.Request.Context()
+	r, err := h.client.Repository.Query().
+		Where(
+			repository.ID(repoID),
+			repository.HasUserWith(user.ID(int(userID))),
+		).
+		Only(ctx)
+	if err != nil {
+		c.String(http.StatusNotFound, "Repository not found")
+		return
+	}
+
+	u, err := h.client.User.Get(ctx, int(userID))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "User not found")
+		return
+	}
+
+	p, token := h.syncer.ProviderFor(u, r)
+	if err := p.ClosePullRequest(ctx, token, r.Owner, r.Name, prNumber); err != nil {
+		log.Printf("Error closing PR #%d for %s: %v", prNumber, r.FullName, err)
+		c.HTML(http.StatusOK, "repo_card_with_toast", gin.H{
+			"Repo":         r,
+			"ToastType":    "danger",
+			"ToastMessage": fmt.Sprintf("Failed to close #%d", prNumber),
+			"ToastDetails": friendlyMergeError(err),
+		})
+		return
+	}
+
+	h.syncer.SyncOneBackground(r)
+	c.HTML(http.StatusOK, "repo_card_with_toast", gin.H{
+		"Repo":         r,
+		"ToastType":    "success",
+		"ToastMessage": fmt.Sprintf("PR #%d closed", prNumber),
+	})
+}
+
+// CloseAllPRs closes every open PR for a repo card.
+func (h *DashboardHandler) CloseAllPRs(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+	repoID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "Invalid repo ID")
+		return
+	}
+
+	ctx := c.Request.Context()
+	r, err := h.client.Repository.Query().
+		Where(
+			repository.ID(repoID),
+			repository.HasUserWith(user.ID(int(userID))),
+		).
+		Only(ctx)
+	if err != nil {
+		c.String(http.StatusNotFound, "Repository not found")
+		return
+	}
+
+	u, err := h.client.User.Get(ctx, int(userID))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "User not found")
+		return
+	}
+
+	p, token := h.syncer.ProviderFor(u, r)
+	prs, err := p.ListPullRequests(ctx, token, r.Owner, r.Name)
+	if err != nil {
+		log.Printf("Error listing PRs for close-all on %s: %v", r.FullName, err)
+		c.HTML(http.StatusOK, "repo_card_with_toast", gin.H{
+			"Repo":         r,
+			"ToastType":    "danger",
+			"ToastMessage": "Failed to list pull requests",
+			"ToastDetails": friendlyMergeError(err),
+		})
+		return
+	}
+
+	var failed []int
+	for _, pr := range prs {
+		if err := p.ClosePullRequest(ctx, token, r.Owner, r.Name, pr.Number); err != nil {
+			failed = append(failed, pr.Number)
+		}
+	}
+
+	h.syncer.SyncOneBackground(r)
+
+	if len(failed) > 0 {
+		c.HTML(http.StatusOK, "repo_card_with_toast", gin.H{
+			"Repo":         r,
+			"ToastType":    "warning",
+			"ToastMessage": fmt.Sprintf("Closed %d PR(s)", len(prs)-len(failed)),
+			"ToastDetails": fmt.Sprintf("Failed: %v", failed),
+		})
+	} else {
+		c.HTML(http.StatusOK, "repo_card_with_toast", gin.H{
+			"Repo":         r,
+			"ToastType":    "success",
+			"ToastMessage": fmt.Sprintf("All %d PR(s) closed successfully!", len(prs)),
 		})
 	}
 }

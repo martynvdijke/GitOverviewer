@@ -108,6 +108,7 @@ type ghWorkflowRun struct {
 	ID         int64  `json:"id"`
 	Status     string `json:"status"`
 	Conclusion string `json:"conclusion"`
+	HeadSHA    string `json:"head_sha"`
 }
 
 type User struct {
@@ -142,7 +143,9 @@ type Release struct {
 
 type WorkflowRun struct {
 	ID         int64
+	Status     string
 	Conclusion string
+	HeadSHA    string
 }
 
 type PullRequest struct {
@@ -156,6 +159,9 @@ type PullRequest struct {
 	// MergeableState is the provider's mergeability hint ("clean",
 	// "dirty", "unknown", ...). Empty when the provider doesn't report it.
 	MergeableState string
+	// HeadSHA is the commit SHA the head branch points at. Used to match
+	// workflow runs to the PR. Empty when the provider doesn't report it.
+	HeadSHA string
 }
 
 type ghPullRequest struct {
@@ -168,6 +174,7 @@ type ghPullRequest struct {
 	HTMLURL   string `json:"html_url"`
 	Head      struct {
 		Ref string `json:"ref"`
+		SHA string `json:"sha"`
 	} `json:"head"`
 	Base struct {
 		Ref string `json:"ref"`
@@ -600,7 +607,30 @@ func (c *Client) GetWorkflowRuns(token, owner, repo, branch string, perPage int)
 	}
 	var result []*WorkflowRun
 	for _, r := range runs.WorkflowRuns {
-		result = append(result, &WorkflowRun{ID: r.ID, Conclusion: r.Conclusion})
+		result = append(result, &WorkflowRun{ID: r.ID, Status: r.Status, Conclusion: r.Conclusion, HeadSHA: r.HeadSHA})
+	}
+	return result, nil
+}
+
+// GetWorkflowRunsForRepo returns the most recent workflow runs for a
+// repository without filtering by branch, so runs can be matched to pull
+// requests by head SHA. Returns an empty slice (not an error) when no runs
+// exist.
+func (c *Client) GetWorkflowRunsForRepo(token, owner, repo string, perPage int) ([]*WorkflowRun, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/actions/runs?per_page=%d", c.APIURL, owner, repo, perPage)
+	resp, err := c.doRequest("GET", url, token, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var runs ghWorkflowRuns
+	if err := json.NewDecoder(resp.Body).Decode(&runs); err != nil {
+		return nil, fmt.Errorf("decoding workflow runs: %w", err)
+	}
+	var result []*WorkflowRun
+	for _, r := range runs.WorkflowRuns {
+		result = append(result, &WorkflowRun{ID: r.ID, Status: r.Status, Conclusion: r.Conclusion, HeadSHA: r.HeadSHA})
 	}
 	return result, nil
 }
@@ -630,6 +660,7 @@ func (c *Client) ListPullRequests(token, owner, repo string) ([]*PullRequest, er
 			HeadRef:        pr.Head.Ref,
 			BaseRef:        pr.Base.Ref,
 			MergeableState: pr.MergeableState,
+			HeadSHA:        pr.Head.SHA,
 		})
 	}
 	return prs, nil
@@ -694,6 +725,30 @@ func (c *Client) MergePullRequest(token, owner, repo string, prNumber int) (bool
 		return false, "", fmt.Errorf("decoding merge response: %w", err)
 	}
 	return result.Merged, result.Message, nil
+}
+
+type closePRRequest struct {
+	State string `json:"state"`
+}
+
+// ClosePullRequest closes an open pull request by setting its state to
+// "closed".
+func (c *Client) ClosePullRequest(token, owner, repo string, prNumber int) error {
+	url := fmt.Sprintf("%s/repos/%s/%s/pulls/%d", c.APIURL, owner, repo, prNumber)
+	body := closePRRequest{State: "closed"}
+	var buf strings.Builder
+	if err := json.NewEncoder(&buf).Encode(body); err != nil {
+		return fmt.Errorf("encoding close request: %w", err)
+	}
+	resp, err := c.doRequest("PATCH", url, token, strings.NewReader(buf.String()))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("closing pull request #%d: %s", prNumber, resp.Status)
+	}
+	return nil
 }
 
 func (c *Client) GetWorkflowStatus(token, owner, repo, branch string) (*WorkflowRun, error) {
