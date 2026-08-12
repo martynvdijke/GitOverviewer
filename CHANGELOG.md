@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/martynvdijke/gitlens/compare/v1.22.0...v1.23.0) (2026-08-12)
+
+
+### Features
+
+* mention release details in gotify deploy notifications ([e71935c](https://github.com/martynvdijke/gitlens/commit/e71935c632affe148fdc83d7ce044d8535016b13))
+
 # [1.22.0](https://github.com/martynvdijke/gitlens/compare/v1.21.1...v1.22.0) (2026-08-11)
 
 
