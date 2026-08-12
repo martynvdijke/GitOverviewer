@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -20,6 +21,7 @@ import (
 	"gitlens/ent/user"
 	"gitlens/internal/github"
 	mw "gitlens/internal/middleware"
+	"gitlens/internal/provider"
 	appsync "gitlens/internal/sync"
 
 	"github.com/gin-gonic/gin"
@@ -706,6 +708,49 @@ func friendlyMergeError(err error) string {
 	}
 }
 
+// friendlyRerunError maps provider error text to a short, user-facing
+// explanation for build re-run failures.
+func friendlyRerunError(err error) string {
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "403"):
+		return "Permission denied — your token may lack workflow write access on this repository."
+	case strings.Contains(msg, "404"):
+		return "Workflow run or repository not found (it may have been deleted or the token lost access)."
+	case strings.Contains(msg, "409"):
+		return "One or more workflow runs are not in a re-runnable state; refresh and try again."
+	case strings.Contains(msg, "rate limit"):
+		return "The provider's API rate limit is exhausted; try again later."
+	default:
+		return msg
+	}
+}
+
+// renderPRQueue re-renders the PR queue tab with a toast after a PR
+// action, overlaying optimistic merged/closed marks so the row state
+// updates before the background sync reconciles. When fetching fresh
+// queue data fails, it falls back to a plain-text toast so the request
+// still completes.
+func (h *DashboardHandler) renderPRQueue(c *gin.Context, ctx context.Context, userID int, toastType, toastMsg, toastDetails string, mergedSet, closedSet map[string]bool) {
+	data, fetchErr := h.fetchPRTabData(ctx, userID, c.Query("repo"))
+	if fetchErr != nil {
+		c.String(http.StatusOK, toastMsg)
+		return
+	}
+	data["ToastType"] = toastType
+	data["ToastMessage"] = toastMsg
+	if toastDetails != "" {
+		data["ToastDetails"] = toastDetails
+	}
+	if mergedSet != nil {
+		data["MergedSet"] = mergedSet
+	}
+	if closedSet != nil {
+		data["ClosedSet"] = closedSet
+	}
+	c.HTML(http.StatusOK, "prs_tab_with_toast", data)
+}
+
 // MergeSinglePR merges a single PR from the unified queue.
 func (h *DashboardHandler) MergeSinglePR(c *gin.Context) {
 	userID := c.GetInt64("user_id")
@@ -734,39 +779,22 @@ func (h *DashboardHandler) MergeSinglePR(c *gin.Context) {
 		return
 	}
 
-	renderQueue := func(toastType, toastMsg, toastDetails string, mergedSet map[string]bool) {
-		data, fetchErr := h.fetchPRTabData(ctx, int(userID), c.Query("repo"))
-		if fetchErr != nil {
-			c.String(http.StatusOK, toastMsg)
-			return
-		}
-		data["ToastType"] = toastType
-		data["ToastMessage"] = toastMsg
-		if toastDetails != "" {
-			data["ToastDetails"] = toastDetails
-		}
-		if mergedSet != nil {
-			data["MergedSet"] = mergedSet
-		}
-		c.HTML(http.StatusOK, "prs_tab_with_toast", data)
-	}
-
 	p, token := h.syncer.ProviderFor(u, r)
 	merged, msg, err := p.MergePullRequest(ctx, token, r.Owner, r.Name, req.PRNumber)
 	if err != nil {
 		log.Printf("Error merging PR #%d for %s: %v", req.PRNumber, r.FullName, err)
-		renderQueue("danger", fmt.Sprintf("Failed to merge #%d", req.PRNumber), friendlyMergeError(err), nil)
+		h.renderPRQueue(c, ctx, int(userID), "danger", fmt.Sprintf("Failed to merge #%d", req.PRNumber), friendlyMergeError(err), nil, nil)
 		return
 	}
 	if !merged {
-		renderQueue("warning", fmt.Sprintf("Merge failed for #%d", req.PRNumber), msg, nil)
+		h.renderPRQueue(c, ctx, int(userID), "warning", fmt.Sprintf("Merge failed for #%d", req.PRNumber), msg, nil, nil)
 		return
 	}
 
 	// Respond immediately; refresh repo state in the background.
 	h.syncer.SyncOneBackground(r)
-	renderQueue("success", fmt.Sprintf("PR #%d merged successfully", req.PRNumber), "",
-		map[string]bool{fmt.Sprintf("%d:%d", r.ID, req.PRNumber): true})
+	h.renderPRQueue(c, ctx, int(userID), "success", fmt.Sprintf("PR #%d merged successfully", req.PRNumber), "",
+		map[string]bool{fmt.Sprintf("%d:%d", r.ID, req.PRNumber): true}, nil)
 }
 
 // BatchMergePRs merges selected PRs from the unified queue.
@@ -889,34 +917,73 @@ func (h *DashboardHandler) CloseSinglePR(c *gin.Context) {
 		return
 	}
 
-	renderQueue := func(toastType, toastMsg, toastDetails string, closedSet map[string]bool) {
-		data, fetchErr := h.fetchPRTabData(ctx, int(userID), c.Query("repo"))
-		if fetchErr != nil {
-			c.String(http.StatusOK, toastMsg)
-			return
-		}
-		data["ToastType"] = toastType
-		data["ToastMessage"] = toastMsg
-		if toastDetails != "" {
-			data["ToastDetails"] = toastDetails
-		}
-		if closedSet != nil {
-			data["ClosedSet"] = closedSet
-		}
-		c.HTML(http.StatusOK, "prs_tab_with_toast", data)
-	}
-
 	p, token := h.syncer.ProviderFor(u, r)
 	if err := p.ClosePullRequest(ctx, token, r.Owner, r.Name, req.PRNumber); err != nil {
 		log.Printf("Error closing PR #%d for %s: %v", req.PRNumber, r.FullName, err)
-		renderQueue("danger", fmt.Sprintf("Failed to close #%d", req.PRNumber), friendlyMergeError(err), nil)
+		h.renderPRQueue(c, ctx, int(userID), "danger", fmt.Sprintf("Failed to close #%d", req.PRNumber), friendlyMergeError(err), nil, nil)
 		return
 	}
 
 	// Respond immediately; refresh repo state in the background.
 	h.syncer.SyncOneBackground(r)
-	renderQueue("success", fmt.Sprintf("PR #%d closed", req.PRNumber), "",
-		map[string]bool{fmt.Sprintf("%d:%d", r.ID, req.PRNumber): true})
+	h.renderPRQueue(c, ctx, int(userID), "success", fmt.Sprintf("PR #%d closed", req.PRNumber), "",
+		nil, map[string]bool{fmt.Sprintf("%d:%d", r.ID, req.PRNumber): true})
+}
+
+// RerunPRBuilds re-queues the failed jobs of a PR's workflow runs from
+// the unified queue.
+func (h *DashboardHandler) RerunPRBuilds(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+
+	var req mergeRequest
+	if err := c.ShouldBind(&req); err != nil {
+		c.String(http.StatusBadRequest, "Invalid request")
+		return
+	}
+
+	ctx := c.Request.Context()
+	r, err := h.client.Repository.Query().
+		Where(
+			repository.ID(req.RepoID),
+			repository.HasUserWith(user.ID(int(userID))),
+		).
+		Only(ctx)
+	if err != nil {
+		c.String(http.StatusNotFound, "Repository not found")
+		return
+	}
+
+	u, err := h.client.User.Get(ctx, int(userID))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "User not found")
+		return
+	}
+
+	p, token := h.syncer.ProviderFor(u, r)
+	count, err := p.RerunFailedWorkflowRuns(ctx, token, r.Owner, r.Name, req.PRNumber)
+	if err != nil {
+		if errors.Is(err, provider.ErrUnsupported) {
+			h.renderPRQueue(c, ctx, int(userID), "warning",
+				fmt.Sprintf("Can't re-run builds for #%d", req.PRNumber),
+				"Re-running builds is not supported for this provider.", nil, nil)
+			return
+		}
+		log.Printf("Error re-running builds for PR #%d for %s: %v", req.PRNumber, r.FullName, err)
+		h.renderPRQueue(c, ctx, int(userID), "danger",
+			fmt.Sprintf("Failed to re-run builds for #%d", req.PRNumber), friendlyRerunError(err), nil, nil)
+		return
+	}
+	if count == 0 {
+		h.renderPRQueue(c, ctx, int(userID), "warning",
+			fmt.Sprintf("No failed builds for #%d", req.PRNumber),
+			"No completed runs with a failing conclusion match this PR's head commit.", nil, nil)
+		return
+	}
+
+	// Respond immediately; refresh repo state in the background.
+	h.syncer.SyncOneBackground(r)
+	h.renderPRQueue(c, ctx, int(userID), "success",
+		fmt.Sprintf("Re-queued %d failed build(s) for #%d", count, req.PRNumber), "", nil, nil)
 }
 
 // BatchClosePRs closes selected PRs from the unified queue.

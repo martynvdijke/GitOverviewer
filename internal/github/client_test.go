@@ -801,6 +801,57 @@ func TestClosePullRequest_Error(t *testing.T) {
 	}
 }
 
+func TestRerunFailedJobs_Success(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/repos/user/repo/actions/runs/42/rerun-failed-jobs" {
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c := NewClient("", "")
+	c.APIURL = srv.URL
+
+	if err := c.RerunFailedJobs("token", "user", "repo", 42); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRerunFailedJobs_Error(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		w.Write([]byte(`{"message": "Cannot re-run a workflow run that is not completed"}`))
+	}))
+	defer srv.Close()
+
+	c := NewClient("", "")
+	c.APIURL = srv.URL
+
+	err := c.RerunFailedJobs("token", "user", "repo", 42)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestIsRerunnableConclusion(t *testing.T) {
+	rerunnable := []string{"failure", "cancelled", "timed_out", "action_required", "stale"}
+	for _, c := range rerunnable {
+		if !IsRerunnableConclusion(c) {
+			t.Errorf("expected %q to be rerunnable", c)
+		}
+	}
+	notRerunnable := []string{"success", "neutral", "skipped", "in_progress", "", "unknown"}
+	for _, c := range notRerunnable {
+		if IsRerunnableConclusion(c) {
+			t.Errorf("expected %q to NOT be rerunnable", c)
+		}
+	}
+}
+
 func TestGetWorkflowRunsForRepo(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("branch") != "" {

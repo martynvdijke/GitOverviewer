@@ -25,12 +25,14 @@ import (
 // mergeFakeProvider is a test double for provider.Provider whose merge and
 // close behavior is scriptable per PR number.
 type mergeFakeProvider struct {
-	name       string
-	mergeFn    func(number int) (bool, string, error)
-	mergeCalls []int
-	closeFn    func(number int) error
-	closeCalls []int
-	listPRs    []*ghclient.PullRequest
+	name        string
+	mergeFn     func(number int) (bool, string, error)
+	mergeCalls  []int
+	closeFn     func(number int) error
+	closeCalls  []int
+	rerunFn     func(number int) (int, error)
+	rerunCalls  []int
+	listPRs     []*ghclient.PullRequest
 }
 
 func (f *mergeFakeProvider) Name() string { return f.name }
@@ -75,6 +77,13 @@ func (f *mergeFakeProvider) ClosePullRequest(ctx context.Context, token, owner, 
 func (f *mergeFakeProvider) GetLatestWorkflowRun(ctx context.Context, token, owner, repo, branch string) (*ghclient.WorkflowRun, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+func (f *mergeFakeProvider) RerunFailedWorkflowRuns(ctx context.Context, token, owner, repo string, number int) (int, error) {
+	f.rerunCalls = append(f.rerunCalls, number)
+	if f.rerunFn == nil {
+		return 0, nil
+	}
+	return f.rerunFn(number)
+}
 
 // newMergeTestHandler builds a DashboardHandler wired to the given
 // providers, plus a gin engine serving the merge routes with a minimal
@@ -101,6 +110,7 @@ func newMergeTestEngine(t *testing.T, h *DashboardHandler, userID int64) *gin.En
 	authed.POST("/prs/batch-merge", h.BatchMergePRs)
 	authed.POST("/prs/close", h.CloseSinglePR)
 	authed.POST("/prs/batch-close", h.BatchClosePRs)
+	authed.POST("/prs/rerun", h.RerunPRBuilds)
 	return engine
 }
 

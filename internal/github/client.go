@@ -148,6 +148,17 @@ type WorkflowRun struct {
 	HeadSHA    string
 }
 
+// IsRerunnableConclusion reports whether a completed workflow run with the
+// given conclusion can have its failed jobs re-run. These are the only
+// conclusions GitHub's rerun-failed-jobs endpoint accepts.
+func IsRerunnableConclusion(conclusion string) bool {
+	switch conclusion {
+	case "failure", "cancelled", "timed_out", "action_required", "stale":
+		return true
+	}
+	return false
+}
+
 type PullRequest struct {
 	Number    int
 	Title     string
@@ -633,6 +644,22 @@ func (c *Client) GetWorkflowRunsForRepo(token, owner, repo string, perPage int) 
 		result = append(result, &WorkflowRun{ID: r.ID, Status: r.Status, Conclusion: r.Conclusion, HeadSHA: r.HeadSHA})
 	}
 	return result, nil
+}
+
+// RerunFailedJobs asks GitHub to re-run the failed jobs of a completed
+// workflow run. Returns an error when the run is not in a re-runnable state
+// (e.g. still running or already successful) or the token lacks workflow
+// write access.
+func (c *Client) RerunFailedJobs(token, owner, repo string, runID int64) error {
+	url := fmt.Sprintf("%s/repos/%s/%s/actions/runs/%d/rerun-failed-jobs", c.APIURL, owner, repo, runID)
+	// An empty JSON body keeps doRequest's Content-Type header honest;
+	// GitHub returns 204 No Content on success.
+	resp, err := c.doRequest("POST", url, token, strings.NewReader("{}"))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
 }
 
 func (c *Client) ListPullRequests(token, owner, repo string) ([]*PullRequest, error) {

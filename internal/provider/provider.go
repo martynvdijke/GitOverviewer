@@ -10,10 +10,17 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	ghclient "gitlens/internal/github"
 )
+
+// ErrUnsupported is returned by Provider methods when the underlying
+// provider cannot perform the requested operation (e.g. Forgejo Actions
+// is disabled). Callers should detect it with errors.Is and surface a
+// soft warning instead of a hard error.
+var ErrUnsupported = errors.New("operation not supported by provider")
 
 // Provider is the surface area a git host must implement to be a
 // drop-in target for GitLens. All per-repo read methods take a token
@@ -73,4 +80,11 @@ type Provider interface {
 	// Forgejo Actions may be disabled) may return ("", nil) to mean
 	// "unknown".
 	GetLatestWorkflowRun(ctx context.Context, token, owner, repo, branch string) (*ghclient.WorkflowRun, error)
+
+	// RerunFailedWorkflowRuns re-queues the failed jobs of every
+	// completed, re-runnable workflow run for the given pull request's
+	// head commit. It returns the number of runs successfully re-queued.
+	// Providers that cannot re-run builds (e.g. Forgejo Actions is
+	// disabled) return ErrUnsupported; check with errors.Is.
+	RerunFailedWorkflowRuns(ctx context.Context, token, owner, repo string, prNumber int) (rerunCount int, err error)
 }

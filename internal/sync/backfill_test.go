@@ -71,6 +71,9 @@ func (f *fakeProvider) ClosePullRequest(ctx context.Context, token, owner, repo 
 func (f *fakeProvider) GetLatestWorkflowRun(ctx context.Context, token, owner, repo, branch string) (*ghclient.WorkflowRun, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+func (f *fakeProvider) RerunFailedWorkflowRuns(ctx context.Context, token, owner, repo string, prNumber int) (int, error) {
+	return 0, fmt.Errorf("not implemented")
+}
 
 func newFakeSyncer(t *testing.T, fake provider.Provider) (*Syncer, *ent.Client) {
 	t.Helper()

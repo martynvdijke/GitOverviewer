@@ -22,16 +22,27 @@ func NewForgejoAdapter(c *forgejo.Client) *ForgejoAdapter {
 
 func (a *ForgejoAdapter) Name() string { return "forgejo" }
 
+// RerunFailedWorkflowRuns implements provider.Provider. Forgejo Actions
+// is opt-in and GitLens does not surface Forgejo workflow runs, so
+// re-running builds is not supported here.
+func (a *ForgejoAdapter) RerunFailedWorkflowRuns(ctx context.Context, token, owner, repo string, prNumber int) (int, error) {
+	_ = ctx
+	_ = token
+	_ = owner
+	_ = repo
+	_ = prNumber
+	return 0, ErrUnsupported
+}
+
 // All other methods are inherited from *forgejo.Client and already
 // match the Provider interface. The compile-time check below
 // confirms it.
 var _ Provider = (*ForgejoAdapter)(nil)
 
-// Static interface check on *forgejo.Client itself (in case someone
-// uses the concrete type directly).
+// Keep imports alive that are only referenced by the embedded client's
+// own interface conformance (checked indirectly via ForgejoAdapter).
 var (
-	_ Provider = (*forgejo.Client)(nil)
-	_          = context.Background
-	_          = time.Now
-	_          = (*ghclient.User)(nil)
+	_ = context.Background
+	_ = time.Now
+	_ = (*ghclient.User)(nil)
 )

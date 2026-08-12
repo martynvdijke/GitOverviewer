@@ -193,6 +193,13 @@ func main() {
 				return "Unknown"
 			}
 		},
+		"prBuildRerunnable": func(status string) bool {
+			switch status {
+			case "failure", "cancelled", "timed_out", "action_required", "stale":
+				return true
+			}
+			return false
+		},
 		"printf": func(format string, args ...any) string {
 			return fmt.Sprintf(format, args...)
 		},
@@ -322,6 +329,7 @@ func main() {
 		authed.POST("/prs/batch-merge", dashHandler.BatchMergePRs)
 		authed.POST("/prs/close", dashHandler.CloseSinglePR)
 		authed.POST("/prs/batch-close", dashHandler.BatchClosePRs)
+		authed.POST("/prs/rerun", dashHandler.RerunPRBuilds)
 		authed.GET("/metrics", middleware.HTMXOnly(), dashHandler.MetricsTab)
 		authed.GET("/repos", middleware.HTMXOnly(), dashHandler.ListRepos)
 		authed.POST("/repos/:id/sync", dashHandler.SyncRepo)

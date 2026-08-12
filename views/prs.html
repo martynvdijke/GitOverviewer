@@ -41,11 +41,16 @@
                         </div>
                     </label>
                     <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
-                        {{if $merged}}
-                        <span class="badge bg-success">Merged ✓</span>
-                        {{else if $closed}}
-                        <span class="badge bg-secondary">Closed</span>
-                        {{else if or (eq .MergeableState "dirty") (eq .MergeableState "blocked")}}
+                        {{if $done}}
+                        {{if $merged}}<span class="badge bg-success">Merged ✓</span>{{else}}<span class="badge bg-secondary">Closed</span>{{end}}
+                        {{else}}
+                        {{if prBuildRerunnable .BuildStatus}}
+                        <div class="d-flex align-items-center gap-1">
+                            <button class="btn btn-sm btn-outline-warning pr-rerun-btn" hx-post="/prs/rerun" hx-vals='{"repo_id":{{.RepoID}},"pr_number":{{.Number}}}' hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#pr-rerun-spin-{{.RepoID}}-{{.Number}}" hx-disabled-elt="this" hx-confirm="Re-run failed builds for #{{.Number}} ({{.RepoFullName}})?">Re-run</button>
+                            <span id="pr-rerun-spin-{{.RepoID}}-{{.Number}}" class="htmx-indicator small text-info">Re-running…</span>
+                        </div>
+                        {{end}}
+                        {{if or (eq .MergeableState "dirty") (eq .MergeableState "blocked")}}
                         <button class="btn btn-sm btn-secondary" disabled title="Not mergeable — resolve conflicts first">Merge</button>
                         <button class="btn btn-sm btn-outline-danger pr-close-btn" hx-post="/prs/close" hx-vals='{"repo_id":{{.RepoID}},"pr_number":{{.Number}}}' hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#pr-q-close-spin-{{.RepoID}}-{{.Number}}" hx-disabled-elt="this" hx-confirm="Close #{{.Number}} ({{.RepoFullName}})?">Close</button>
                         {{else}}
@@ -57,6 +62,7 @@
                             <button class="btn btn-sm btn-outline-danger pr-close-btn" hx-post="/prs/close" hx-vals='{"repo_id":{{.RepoID}},"pr_number":{{.Number}}}' hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#pr-q-close-spin-{{.RepoID}}-{{.Number}}" hx-disabled-elt="this" hx-confirm="Close #{{.Number}} ({{.RepoFullName}})?">Close</button>
                             <span id="pr-q-close-spin-{{.RepoID}}-{{.Number}}" class="htmx-indicator small text-info">Closing…</span>
                         </div>
+                        {{end}}
                         {{end}}
                     </div>
                 </div>
@@ -100,11 +106,16 @@
                 <span class="text-secondary small">{{printf "%.10s" .CreatedAt}}</span>
             </span>
             <span class="d-flex flex-column align-items-end gap-1" style="width:110px;flex-shrink:0">
-                {{if $merged}}
-                <span class="badge bg-success">Merged ✓</span>
-                {{else if $closed}}
-                <span class="badge bg-secondary">Closed</span>
-                {{else if or (eq .MergeableState "dirty") (eq .MergeableState "blocked")}}
+                {{if $done}}
+                {{if $merged}}<span class="badge bg-success">Merged ✓</span>{{else}}<span class="badge bg-secondary">Closed</span>{{end}}
+                {{else}}
+                {{if prBuildRerunnable .BuildStatus}}
+                <div class="d-flex align-items-center gap-1">
+                    <button class="btn btn-sm btn-outline-warning pr-rerun-btn" hx-post="/prs/rerun" hx-vals='{"repo_id":{{.RepoID}},"pr_number":{{.Number}}}' hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#pr-rerun-spin-{{.RepoID}}-{{.Number}}" hx-disabled-elt="this" hx-confirm="Re-run failed builds for #{{.Number}} ({{.RepoFullName}})?">Re-run</button>
+                    <span id="pr-rerun-spin-{{.RepoID}}-{{.Number}}" class="htmx-indicator small text-info">Re-running…</span>
+                </div>
+                {{end}}
+                {{if or (eq .MergeableState "dirty") (eq .MergeableState "blocked")}}
                 <button class="btn btn-sm btn-secondary" disabled title="Not mergeable — resolve conflicts first">Merge</button>
                 <button class="btn btn-sm btn-outline-danger pr-close-btn" hx-post="/prs/close" hx-vals='{"repo_id":{{.RepoID}},"pr_number":{{.Number}}}' hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#pr-q-close-spin-{{.RepoID}}-{{.Number}}" hx-disabled-elt="this" hx-confirm="Close #{{.Number}} ({{.RepoFullName}})?">Close</button>
                 {{else}}
@@ -116,6 +127,7 @@
                     <button class="btn btn-sm btn-outline-danger pr-close-btn" hx-post="/prs/close" hx-vals='{"repo_id":{{.RepoID}},"pr_number":{{.Number}}}' hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#pr-q-close-spin-{{.RepoID}}-{{.Number}}" hx-disabled-elt="this" hx-confirm="Close #{{.Number}} ({{.RepoFullName}})?">Close</button>
                     <span id="pr-q-close-spin-{{.RepoID}}-{{.Number}}" class="htmx-indicator small text-info">Closing…</span>
                 </div>
+                {{end}}
                 {{end}}
             </span>
         </div>

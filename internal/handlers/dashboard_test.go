@@ -1301,6 +1301,7 @@ func serveIndexRequest(handler gin.HandlerFunc, path string, cookies ...*http.Co
 		"hasWorkflowRun":       func(status string) bool { return false },
 		"prBuildClass":         func(status string) string { return "" },
 		"prBuildLabel":         func(status string) string { return "" },
+		"prBuildRerunnable":    func(status string) bool { return false },
 		"printf":               func(format string, args ...any) string { return "" },
 		"releaseIcon":          func(conclusion string) string { return "" },
 		"releaseLabel":         func(conclusion string) string { return "" },
