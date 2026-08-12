@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"html/template"
 	"net/http"
@@ -38,6 +39,9 @@ func newTestDeployHandler(targets []deploy.Target, err error, gotifyOn bool) *De
 	h := NewDeployHandler(gotifyOn)
 	h.targetsFn = func() ([]deploy.Target, error) {
 		return targets, err
+	}
+	h.statusFn = func(context.Context) ([]deploy.DiscoveredContainer, error) {
+		return nil, nil
 	}
 	return h
 }
@@ -124,5 +128,62 @@ func TestDeployDashboard_ErrorNoTargets(t *testing.T) {
 	w := serveDeployDashboard(t, h.Dashboard)
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestDeployDashboard_LabeledContainers(t *testing.T) {
+	targets := []deploy.Target{
+		{Repository: "org/tracked", Image: "img", Container: "c1", TagStrategy: deploy.TagStrategyLatest},
+	}
+	h := NewDeployHandler(false)
+	h.targetsFn = func() ([]deploy.Target, error) { return targets, nil }
+	h.statusFn = func(context.Context) ([]deploy.DiscoveredContainer, error) {
+		return []deploy.DiscoveredContainer{
+			{Container: "c1", Image: "img", Tag: "latest", Label: "org/tracked", Tracked: true, Reason: "tracked via gitlens.deploy.target label"},
+			{Container: "c2", Image: "img2", Tag: "v1.0", Label: "org/other", Tracked: false, Reason: "invalid label value"},
+			{Container: "c3", Image: "img3", Tag: "v2.0", Label: "org/dup", Tracked: false, Reason: "repository configured explicitly"},
+		}, nil
+	}
+	w := serveDeployDashboard(t, h.Dashboard)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	body := w.Body.String()
+	for _, want := range []string{
+		"Labeled Containers",
+		"gitlens.deploy.target",
+		"c1",
+		"org/tracked",
+		"img:latest",
+		"Tracked",
+		"Not tracked",
+		"c2",
+		"org/dup",
+		"repository configured explicitly",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected rendered deploy_tab to contain %q, got: %s", want, body)
+		}
+	}
+	// A tracked labeled container should also mark its target row source as "label".
+	if !strings.Contains(body, ">label</span>") {
+		t.Fatalf("expected a 'label' source badge on the target card, got: %s", body)
+	}
+}
+
+func TestDeployDashboard_StatusError(t *testing.T) {
+	h := NewDeployHandler(true)
+	h.targetsFn = func() ([]deploy.Target, error) {
+		return []deploy.Target{{Repository: "org/app", Image: "img", Container: "c"}}, nil
+	}
+	h.statusFn = func(context.Context) ([]deploy.DiscoveredContainer, error) {
+		return nil, errors.New("docker not available")
+	}
+	w := serveDeployDashboard(t, h.Dashboard)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "Docker label discovery unavailable") {
+		t.Fatalf("expected Docker warning banner, got: %s", w.Body.String())
 	}
 }

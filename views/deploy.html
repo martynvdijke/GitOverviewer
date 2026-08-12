@@ -70,5 +70,42 @@
         {{end}}
     </div>
     {{end}}
+
+    {{if .Discovered}}
+    <div class="mt-4">
+        <h5 class="mb-2">Labeled Containers
+            <span class="text-secondary small fw-normal">(gitlens.deploy.target)</span>
+        </h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Container</th>
+                        <th>Label</th>
+                        <th>Image</th>
+                        <th>Tracked</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Discovered}}
+                    <tr>
+                        <td><code>{{.Container}}</code></td>
+                        <td><code>{{.Label}}</code></td>
+                        <td><code>{{.Image}}:{{.Tag}}</code></td>
+                        <td>
+                            {{if .Tracked}}
+                            <span class="badge bg-success">Tracked</span>
+                            {{else}}
+                            <span class="badge bg-secondary">Not tracked</span>
+                            {{end}}
+                            <span class="text-secondary small ms-1">{{.Reason}}</span>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {{end}}
 </div>
 {{end}}

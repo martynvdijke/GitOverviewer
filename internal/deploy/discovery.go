@@ -26,6 +26,84 @@ type containerInspect struct {
 // Containers are skipped if the label value is invalid or unparsable.
 // Returns nil, nil when Docker is unavailable or no labels are found.
 func DiscoverTargets(ctx context.Context) ([]Target, error) {
+	containers, err := listLabeledContainers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var targets []Target
+	for _, c := range containers {
+		t, err := containerToTarget(c)
+		if err != nil {
+			log.Printf("Deploy: skip container %s: %v", c.Name, err)
+			continue
+		}
+		if t != nil {
+			targets = append(targets, *t)
+		}
+	}
+	return targets, nil
+}
+
+// DiscoveredContainer describes a running container that carries the
+// gitlens.deploy.target label, plus whether GitLens currently tracks it
+// as a deploy target.
+type DiscoveredContainer struct {
+	Container string // docker container name
+	Image     string // image without tag
+	Tag       string // currently running image tag
+	Label     string // gitlens.deploy.target value (owner/repo)
+	Tracked   bool   // whether GitLens tracks this container via its label
+	Reason    string // why it is or is not tracked
+}
+
+// DiscoverContainerStatus inspects running containers for the
+// gitlens.deploy.target label and reports each one's tracking status
+// relative to the explicit DEPLOY_TARGETS. A labeled container is tracked
+// unless its label value is invalid (not owner/repo) or the same repository
+// is configured explicitly (explicit targets win).
+// Returns nil, nil when Docker is unavailable or no labels are found.
+func DiscoverContainerStatus(ctx context.Context) ([]DiscoveredContainer, error) {
+	explicit, err := LoadTargets()
+	if err != nil {
+		return nil, err
+	}
+	return discoverContainerStatus(ctx, explicit)
+}
+
+func discoverContainerStatus(ctx context.Context, explicit []Target) ([]DiscoveredContainer, error) {
+	containers, err := listLabeledContainers(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]DiscoveredContainer, 0, len(containers))
+	for _, c := range containers {
+		img, tag := splitImageTag(c.Config.Image)
+		dc := DiscoveredContainer{
+			Container: strings.TrimPrefix(c.Name, "/"),
+			Image:     img,
+			Tag:       tag,
+			Label:     c.Config.Labels["gitlens.deploy.target"],
+		}
+
+		switch {
+		case !validRepoLabel(dc.Label):
+			dc.Reason = fmt.Sprintf("invalid label value %q — expected owner/repo", dc.Label)
+		case MatchTarget(explicit, dc.Label) != nil:
+			dc.Reason = "repository configured explicitly — explicit target wins"
+		default:
+			dc.Tracked = true
+			dc.Reason = "tracked via gitlens.deploy.target label"
+		}
+		out = append(out, dc)
+	}
+	return out, nil
+}
+
+// listLabeledContainers returns inspect data for every running container
+// that carries the gitlens.deploy.target label.
+func listLabeledContainers(ctx context.Context) ([]containerInspect, error) {
 	// Step 1: find container IDs with the label.
 	ps := execCommand(ctx, "docker", "ps", "-q", "--filter", "label=gitlens.deploy.target")
 	out, err := ps.Output()
@@ -49,19 +127,13 @@ func DiscoverTargets(ctx context.Context) ([]Target, error) {
 	if err := json.Unmarshal(raw, &containers); err != nil {
 		return nil, fmt.Errorf("docker inspect parse failed: %w", err)
 	}
+	return containers, nil
+}
 
-	var targets []Target
-	for _, c := range containers {
-		t, err := containerToTarget(c)
-		if err != nil {
-			log.Printf("Deploy: skip container %s: %v", c.Name, err)
-			continue
-		}
-		if t != nil {
-			targets = append(targets, *t)
-		}
-	}
-	return targets, nil
+// validRepoLabel reports whether v is a valid gitlens.deploy.target value
+// (owner/repo format).
+func validRepoLabel(v string) bool {
+	return v != "" && strings.Count(v, "/") == 1
 }
 
 // containerToTarget converts a docker inspect result to a Target.
@@ -73,7 +145,7 @@ func containerToTarget(c containerInspect) (*Target, error) {
 	}
 
 	// Validate: must be owner/repo format.
-	if strings.Count(repo, "/") != 1 {
+	if !validRepoLabel(repo) {
 		return nil, fmt.Errorf("invalid label value %q: expected owner/repo format", repo)
 	}
 

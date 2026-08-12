@@ -3,6 +3,7 @@ package deploy
 import (
 	"context"
 	"os/exec"
+	"strings"
 	"testing"
 )
 
@@ -406,6 +407,98 @@ func TestDiscoverTargets_MixedRegistriesSingleRun(t *testing.T) {
 	}
 	if images["registry.internal:5000/team/db"] != "d" {
 		t.Fatal("missing or wrong private registry image")
+	}
+}
+
+// ---- DiscoverContainerStatus ----
+
+func TestDiscoverContainerStatus_TrackedAndInvalid(t *testing.T) {
+	orig := execCommand
+	defer func() { execCommand = orig }()
+
+	execCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		if name == "docker" && len(args) >= 2 && args[0] == "ps" {
+			return exec.CommandContext(ctx, "echo", "id1\nid2\nid3")
+		}
+		if name == "docker" && args[0] == "inspect" {
+			return exec.CommandContext(ctx, "echo", `[
+				{"Name":"/app1","Config":{"Image":"img1:latest","Labels":{"gitlens.deploy.target":"org/app1"}}},
+				{"Name":"/bad","Config":{"Image":"img2:latest","Labels":{"gitlens.deploy.target":"noslash"}}},
+				{"Name":"/app3","Config":{"Image":"img3:v1.0","Labels":{"gitlens.deploy.target":"org/app3"}}}
+			]`)
+		}
+		return exec.CommandContext(ctx, "echo", "")
+	}
+
+	statuses, err := DiscoverContainerStatus(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(statuses) != 3 {
+		t.Fatalf("expected 3 statuses, got %d", len(statuses))
+	}
+	if statuses[0].Container != "app1" || !statuses[0].Tracked {
+		t.Fatalf("expected app1 tracked, got %+v", statuses[0])
+	}
+	if statuses[0].Image != "img1" || statuses[0].Tag != "latest" {
+		t.Fatalf("expected img1:latest, got %s:%s", statuses[0].Image, statuses[0].Tag)
+	}
+	if statuses[1].Tracked {
+		t.Fatalf("expected bad label not tracked, got %+v", statuses[1])
+	}
+	if !strings.Contains(statuses[1].Reason, "invalid label") {
+		t.Fatalf("expected invalid-label reason, got %q", statuses[1].Reason)
+	}
+	if !statuses[2].Tracked || statuses[2].Tag != "v1.0" {
+		t.Fatalf("expected app3 tracked with tag v1.0, got %+v", statuses[2])
+	}
+}
+
+func TestDiscoverContainerStatus_ExplicitOverrides(t *testing.T) {
+	orig := execCommand
+	defer func() { execCommand = orig }()
+
+	t.Setenv("DEPLOY_TARGETS", `[{"repository":"org/app1","image":"explicit-img","container":"explicit-c","tag_strategy":"latest"}]`)
+
+	execCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		if name == "docker" && len(args) >= 2 && args[0] == "ps" {
+			return exec.CommandContext(ctx, "echo", "id1")
+		}
+		if name == "docker" && args[0] == "inspect" {
+			return exec.CommandContext(ctx, "echo", `[{"Name":"/app1","Config":{"Image":"img1:latest","Labels":{"gitlens.deploy.target":"org/app1"}}}]`)
+		}
+		return exec.CommandContext(ctx, "echo", "")
+	}
+
+	statuses, err := DiscoverContainerStatus(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(statuses) != 1 {
+		t.Fatalf("expected 1 status, got %d", len(statuses))
+	}
+	if statuses[0].Tracked {
+		t.Fatalf("expected labeled container overridden by explicit target to be untracked, got %+v", statuses[0])
+	}
+	if !strings.Contains(statuses[0].Reason, "explicit") {
+		t.Fatalf("expected explicit-override reason, got %q", statuses[0].Reason)
+	}
+}
+
+func TestDiscoverContainerStatus_NoLabeledContainers(t *testing.T) {
+	orig := execCommand
+	defer func() { execCommand = orig }()
+
+	execCommand = func(ctx context.Context, name string, args ...string) *exec.Cmd {
+		return exec.CommandContext(ctx, "echo", "")
+	}
+
+	statuses, err := DiscoverContainerStatus(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(statuses) != 0 {
+		t.Fatalf("expected 0 statuses, got %d", len(statuses))
 	}
 }
 
