@@ -149,7 +149,9 @@ The quick version:
      `gitlens.deploy.target=owner/repo` to any running container. GitLens inspects
      Docker on startup and infers image, container, and tag strategy from the runtime.
      Both methods can be combined; explicit targets win for the same repository.
-3. **Mount the Docker socket** so GitLens can reach Docker:
+3. **Mount the Docker socket** so GitLens can reach Docker (the official image
+   includes the Docker CLI; the repo's `docker-compose.yml` mounts the socket
+   already — needed for label discovery and container recreation):
    ```yaml
    volumes:
      - /var/run/docker.sock:/var/run/docker.sock

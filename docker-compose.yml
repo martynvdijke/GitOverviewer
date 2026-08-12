@@ -17,6 +17,10 @@ services:
     volumes:
       - gitlens-data:/app
       - gitlens-db:/db
+      # Required for release → Docker deploy (container label discovery and
+      # container recreation). Grants the container control over the host's
+      # Docker daemon — only mount on trusted hosts.
+      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   gitlens-data:

@@ -126,13 +126,21 @@ Notes:
 ## Full setup, step by step
 
 1. **Mount the Docker socket into GitLens** and make sure the Docker CLI is
-   installed on the host:
+   available inside the GitLens process. The official image ships with the
+   Docker CLI (`docker-cli` + `docker-cli-compose`) and the repo's
+   `docker-compose.yml` already mounts the socket, so this is only needed for
+   custom deployments:
 
    ```yaml
    # docker-compose.yml (gitlens service)
    volumes:
      - /var/run/docker.sock:/var/run/docker.sock
    ```
+
+   The socket is what makes **label discovery** work: GitLens runs
+   `docker ps --filter label=gitlens.deploy.target` and inspects the matches.
+   Without the socket (or CLI) the Deploy tab shows a "Docker label discovery
+   unavailable" warning and only explicit `DEPLOY_TARGETS` are used.
 
 2. **Define your deploy targets** using Option A, Option B, or both (see above).
    You can verify them at any time on the Deploy Targets page: open GitLens and go
@@ -236,6 +244,7 @@ Nginx, Traefik) running in a separate container.
 |---|---|
 | Logs say `Deploy: 0 target(s) configured` | No targets loaded — check `DEPLOY_TARGETS` JSON validity, `DEPLOY_TARGETS_FILE` path, or that a labeled container is running and the socket is mounted. |
 | `Deploy: container label discovery failed` | Docker socket not mounted or Docker CLI missing. Explicit `DEPLOY_TARGETS` still work. |
+| Labeled container not discovered | Put the label at the **service level** (`labels:`), not under `deploy.labels` (swarm-only), and **recreate the container** after editing the compose file (`docker compose up -d`). The Deploy tab's *Labeled Containers* table shows what GitLens sees. |
 | Release published, nothing happens | Webhook missing the `release` event, action isn't `published`, repo isn't in the allowlist, or the release is a prerelease (set `DEPLOY_ALLOW_PRERELEASE=true` to allow). |
 | `pull failed` | The tag doesn't exist in the registry (check CI pushed `image:tag`) or the registry needs auth (`docker login` / `gh auth login` on the host). |
 | Recreated container has no ports/env/volumes | Container is compose-managed but `DEPLOY_BACKEND=api`. Switch to `compose`. |

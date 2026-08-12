@@ -22,7 +22,10 @@ ARG VERSION=dev
 RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-X main.Version=${VERSION}" -o gitlens .
 
 FROM alpine:latest
-RUN apk add --no-cache sqlite-libs ca-certificates
+# docker-cli + compose plugin are required for the release → Docker deploy
+# feature (container label discovery and container recreation). Without them
+# the deploy subsystem falls back to explicit DEPLOY_TARGETS only.
+RUN apk add --no-cache sqlite-libs ca-certificates docker-cli docker-cli-compose
 
 WORKDIR /app
 
