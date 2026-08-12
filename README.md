@@ -121,7 +121,7 @@ All configuration is done via environment variables. For local development, plac
 | `FORGEJO_CLIENT_SECRET` | — | Forgejo OAuth2 application client secret (required if FORGEJO_CLIENT_ID set) |
 | `FORGEJO_REDIRECT_URL` | `<APP_URL>/auth/forgejo/callback` | Forgejo OAuth callback URL |
 | `FORGEJO_DEFAULT_URL` | — | Default Forgejo instance base URL (e.g. `https://codeberg.org`). If set, users skip the instance URL prompt on login. |
-| `DEPLOY_TARGETS` | — | JSON array of deploy targets for release-triggered Docker updates (see Release Deploy section below) |
+| `DEPLOY_TARGETS` | — | JSON array of deploy targets for release-triggered Docker updates (see [docs/deploy-targets.md](docs/deploy-targets.md)) |
 | `DEPLOY_TARGETS_FILE` | — | Path to JSON file containing deploy targets (alternative to DEPLOY_TARGETS) |
 | `DEPLOY_BACKEND` | `api` | Deploy backend: `api` (docker pull + recreate) or `compose` (docker compose pull + up) |
 | `DEPLOY_ALLOW_PRERELEASE` | `false` | Set to `true` to allow prerelease GitHub releases to trigger deploys |
@@ -130,60 +130,38 @@ All configuration is done via environment variables. For local development, plac
 
 ## Release → Docker Deploy
 
-GitLens can automatically pull a new Docker image and restart the matching container when a GitHub release is published. This turns GitLens into a lightweight CD agent for self-hosted services.
+GitLens can act as a lightweight CD agent: when one of your projects publishes a new
+release on GitHub, it pulls the latest container image and recreates the matching
+container so it runs the new version.
 
-### How it works
+The full guide — concept, both configuration methods, worked examples, backend
+choice, and troubleshooting — lives in **[docs/deploy-targets.md](docs/deploy-targets.md)**.
+The quick version:
 
-1. Configure a GitHub webhook that sends `release` events (alongside `push` events) to the same `/webhook/github` endpoint
-2. Define one or more **deploy targets** that map `owner/repo` → Docker image + container name
-3. On a published release, GitLens pulls the new image, stops the old container, removes it, creates a new container with the updated image, and starts it
-4. If Gotify is configured, success/failure notifications are pushed
-
-### Setup
-
-1. **Add the `release` event** to your GitHub webhook (existing push webhook works — just add the event)
-2. **Set deploy targets** via one of:
-   - **Explicit config** via `DEPLOY_TARGETS`:
-     ```json
+1. **Add the `release` event** to your GitHub webhook (the existing push webhook
+   works — just add the event; the URL stays `/webhook/github`)
+2. **Define deploy targets** one of two ways:
+   - **Explicit config** via `DEPLOY_TARGETS` (JSON array) or `DEPLOY_TARGETS_FILE`:
+     ```env
      DEPLOY_TARGETS=[{"repository":"martynvdijke/gitlens","image":"ghcr.io/martynvdijke/gitlens","container":"gitlens","tag_strategy":"release_tag"}]
      ```
-   - **Container label auto-discovery** (alternative): add the label `gitlens.deploy.target=owner/repo` to any running container. GitLens inspects Docker on startup, finds labeled containers, and infers the image name, container name, and tag strategy from the runtime. The `gitlens.deploy.target` value must be in `owner/repo` format.
-     ```yaml
-     # docker-compose.yml snippet
-     services:
-       gitlens:
-         image: ghcr.io/martynvdijke/gitlens:latest
-         labels:
-           gitlens.deploy.target: "martynvdijke/gitlens"
-         volumes:
-           - /var/run/docker.sock:/var/run/docker.sock
-     ```
-   - **Both**: explicit `DEPLOY_TARGETS` and container labels are merged. Explicit targets always take priority for the same repository.
+   - **Container label auto-discovery** (alternative): add the label
+     `gitlens.deploy.target=owner/repo` to any running container. GitLens inspects
+     Docker on startup and infers image, container, and tag strategy from the runtime.
+     Both methods can be combined; explicit targets win for the same repository.
 3. **Mount the Docker socket** so GitLens can reach Docker:
    ```yaml
    volumes:
      - /var/run/docker.sock:/var/run/docker.sock
    ```
-4. **(Optional) Configure Gotify**:
-   ```
-   GOTIFY_URL=http://gotify:8080
-   GOTIFY_TOKEN=abc123
-   ```
+4. **(Optional) Configure Gotify** for deploy notifications (`GOTIFY_URL`, `GOTIFY_TOKEN`)
 
 Tag strategy options:
 - `release_tag` (default): uses the release tag, stripping the leading `v` prefix (e.g. `v1.2.3` → `1.2.3`)
 - `latest`: always pulls `:latest`
 
-### Security notes
-
-- Only allowlisted repositories can trigger deploys, regardless of webhook payload
-- Signature verification (`GITHUB_WEBHOOK_SECRET`) is recommended for production
-- No arbitrary shell commands are executed from webhook payloads
-- When recreating compose-managed containers, use `DEPLOY_BACKEND=compose` to preserve compose network/env configuration
-
-### Self-update caveat
-
-When GitLens is configured to deploy its own container (e.g. container name `gitlens`), the deploy will stop and recreate the running GitLens process. After the deploy goroutine fires, GitLens acknowledges the webhook, logs the deploy, then the container is stopped and replaced with the new image. Expect brief downtime. For zero-downtime updates, consider a reverse proxy (e.g. Caddy, Nginx) running in a separate container.
+> ⚠️ Use `DEPLOY_BACKEND=compose` for compose-managed containers — the default `api`
+> backend recreates them without their compose env/network/volume configuration.
 
 ## Docker
 
