@@ -104,6 +104,46 @@ func (_u *AdminConfigUpdate) SetNillableLogSeverity(v *string) *AdminConfigUpdat
 	return _u
 }
 
+// SetGotifyURL sets the "gotify_url" field.
+func (_u *AdminConfigUpdate) SetGotifyURL(v string) *AdminConfigUpdate {
+	_u.mutation.SetGotifyURL(v)
+	return _u
+}
+
+// SetNillableGotifyURL sets the "gotify_url" field if the given value is not nil.
+func (_u *AdminConfigUpdate) SetNillableGotifyURL(v *string) *AdminConfigUpdate {
+	if v != nil {
+		_u.SetGotifyURL(*v)
+	}
+	return _u
+}
+
+// ClearGotifyURL clears the value of the "gotify_url" field.
+func (_u *AdminConfigUpdate) ClearGotifyURL() *AdminConfigUpdate {
+	_u.mutation.ClearGotifyURL()
+	return _u
+}
+
+// SetGotifyToken sets the "gotify_token" field.
+func (_u *AdminConfigUpdate) SetGotifyToken(v string) *AdminConfigUpdate {
+	_u.mutation.SetGotifyToken(v)
+	return _u
+}
+
+// SetNillableGotifyToken sets the "gotify_token" field if the given value is not nil.
+func (_u *AdminConfigUpdate) SetNillableGotifyToken(v *string) *AdminConfigUpdate {
+	if v != nil {
+		_u.SetGotifyToken(*v)
+	}
+	return _u
+}
+
+// ClearGotifyToken clears the value of the "gotify_token" field.
+func (_u *AdminConfigUpdate) ClearGotifyToken() *AdminConfigUpdate {
+	_u.mutation.ClearGotifyToken()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *AdminConfigUpdate) SetUpdatedAt(v time.Time) *AdminConfigUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -177,6 +217,18 @@ func (_u *AdminConfigUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if value, ok := _u.mutation.LogSeverity(); ok {
 		_spec.SetField(adminconfig.FieldLogSeverity, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.GotifyURL(); ok {
+		_spec.SetField(adminconfig.FieldGotifyURL, field.TypeString, value)
+	}
+	if _u.mutation.GotifyURLCleared() {
+		_spec.ClearField(adminconfig.FieldGotifyURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.GotifyToken(); ok {
+		_spec.SetField(adminconfig.FieldGotifyToken, field.TypeString, value)
+	}
+	if _u.mutation.GotifyTokenCleared() {
+		_spec.ClearField(adminconfig.FieldGotifyToken, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(adminconfig.FieldUpdatedAt, field.TypeTime, value)
@@ -274,6 +326,46 @@ func (_u *AdminConfigUpdateOne) SetNillableLogSeverity(v *string) *AdminConfigUp
 	if v != nil {
 		_u.SetLogSeverity(*v)
 	}
+	return _u
+}
+
+// SetGotifyURL sets the "gotify_url" field.
+func (_u *AdminConfigUpdateOne) SetGotifyURL(v string) *AdminConfigUpdateOne {
+	_u.mutation.SetGotifyURL(v)
+	return _u
+}
+
+// SetNillableGotifyURL sets the "gotify_url" field if the given value is not nil.
+func (_u *AdminConfigUpdateOne) SetNillableGotifyURL(v *string) *AdminConfigUpdateOne {
+	if v != nil {
+		_u.SetGotifyURL(*v)
+	}
+	return _u
+}
+
+// ClearGotifyURL clears the value of the "gotify_url" field.
+func (_u *AdminConfigUpdateOne) ClearGotifyURL() *AdminConfigUpdateOne {
+	_u.mutation.ClearGotifyURL()
+	return _u
+}
+
+// SetGotifyToken sets the "gotify_token" field.
+func (_u *AdminConfigUpdateOne) SetGotifyToken(v string) *AdminConfigUpdateOne {
+	_u.mutation.SetGotifyToken(v)
+	return _u
+}
+
+// SetNillableGotifyToken sets the "gotify_token" field if the given value is not nil.
+func (_u *AdminConfigUpdateOne) SetNillableGotifyToken(v *string) *AdminConfigUpdateOne {
+	if v != nil {
+		_u.SetGotifyToken(*v)
+	}
+	return _u
+}
+
+// ClearGotifyToken clears the value of the "gotify_token" field.
+func (_u *AdminConfigUpdateOne) ClearGotifyToken() *AdminConfigUpdateOne {
+	_u.mutation.ClearGotifyToken()
 	return _u
 }
 
@@ -380,6 +472,18 @@ func (_u *AdminConfigUpdateOne) sqlSave(ctx context.Context) (_node *AdminConfig
 	}
 	if value, ok := _u.mutation.LogSeverity(); ok {
 		_spec.SetField(adminconfig.FieldLogSeverity, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.GotifyURL(); ok {
+		_spec.SetField(adminconfig.FieldGotifyURL, field.TypeString, value)
+	}
+	if _u.mutation.GotifyURLCleared() {
+		_spec.ClearField(adminconfig.FieldGotifyURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.GotifyToken(); ok {
+		_spec.SetField(adminconfig.FieldGotifyToken, field.TypeString, value)
+	}
+	if _u.mutation.GotifyTokenCleared() {
+		_spec.ClearField(adminconfig.FieldGotifyToken, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(adminconfig.FieldUpdatedAt, field.TypeTime, value)

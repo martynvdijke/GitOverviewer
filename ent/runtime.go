@@ -34,7 +34,7 @@ func init() {
 	// adminconfig.DefaultLogSeverity holds the default value on creation for the log_severity field.
 	adminconfig.DefaultLogSeverity = adminconfigDescLogSeverity.Default.(string)
 	// adminconfigDescUpdatedAt is the schema descriptor for updated_at field.
-	adminconfigDescUpdatedAt := adminconfigFields[6].Descriptor()
+	adminconfigDescUpdatedAt := adminconfigFields[8].Descriptor()
 	// adminconfig.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	adminconfig.DefaultUpdatedAt = adminconfigDescUpdatedAt.Default.(func() time.Time)
 	// adminconfig.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

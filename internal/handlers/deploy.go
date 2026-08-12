@@ -58,6 +58,12 @@ func NewDeployHandler(gotifyOn bool) *DeployHandler {
 	}
 }
 
+// SetGotifyOn updates the Gotify connectivity flag shown on the deploy tab
+// (e.g. after Gotify settings change in the admin panel).
+func (h *DeployHandler) SetGotifyOn(on bool) {
+	h.gotifyOn = on
+}
+
 // Dashboard renders the deploy tab content.
 // GET /deploy
 func (h *DeployHandler) Dashboard(c *gin.Context) {

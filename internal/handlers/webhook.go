@@ -50,6 +50,12 @@ func (h *WebhookHandler) SetDeployer(targets []deploy.Target, d deploy.Deployer,
 	h.gotify = g
 }
 
+// SetGotify swaps the notifier (e.g. after Gotify settings change in the
+// admin panel). nil disables notifications.
+func (h *WebhookHandler) SetGotify(g notifier) {
+	h.gotify = g
+}
+
 type pushPayload struct {
 	Ref        string `json:"ref"`
 	Repository struct {

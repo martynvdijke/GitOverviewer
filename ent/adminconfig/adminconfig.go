@@ -23,6 +23,10 @@ const (
 	FieldLogsEnabled = "logs_enabled"
 	// FieldLogSeverity holds the string denoting the log_severity field in the database.
 	FieldLogSeverity = "log_severity"
+	// FieldGotifyURL holds the string denoting the gotify_url field in the database.
+	FieldGotifyURL = "gotify_url"
+	// FieldGotifyToken holds the string denoting the gotify_token field in the database.
+	FieldGotifyToken = "gotify_token"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the adminconfig in the database.
@@ -37,6 +41,8 @@ var Columns = []string{
 	FieldMetricsEnabled,
 	FieldLogsEnabled,
 	FieldLogSeverity,
+	FieldGotifyURL,
+	FieldGotifyToken,
 	FieldUpdatedAt,
 }
 
@@ -98,6 +104,16 @@ func ByLogsEnabled(opts ...sql.OrderTermOption) OrderOption {
 // ByLogSeverity orders the results by the log_severity field.
 func ByLogSeverity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLogSeverity, opts...).ToFunc()
+}
+
+// ByGotifyURL orders the results by the gotify_url field.
+func ByGotifyURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGotifyURL, opts...).ToFunc()
+}
+
+// ByGotifyToken orders the results by the gotify_token field.
+func ByGotifyToken(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldGotifyToken, opts...).ToFunc()
 }
 
 // ByUpdatedAt orders the results by the updated_at field.

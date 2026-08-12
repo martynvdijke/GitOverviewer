@@ -36,6 +36,24 @@ func TestNew_NilWhenURLMissing(t *testing.T) {
 	}
 }
 
+func TestNewWith_NilWhenEitherEmpty(t *testing.T) {
+	if c := gotify.NewWith("", "tok"); c != nil {
+		t.Fatal("expected nil client when url empty")
+	}
+	if c := gotify.NewWith("http://gotify:8080", ""); c != nil {
+		t.Fatal("expected nil client when token empty")
+	}
+	if c := gotify.NewWith("", ""); c != nil {
+		t.Fatal("expected nil client when both empty")
+	}
+}
+
+func TestNewWith_NonNilWhenBothSet(t *testing.T) {
+	if c := gotify.NewWith("http://gotify:8080", "tok"); c == nil {
+		t.Fatal("expected non-nil client when both set")
+	}
+}
+
 func TestSend_NilClient(t *testing.T) {
 	// Sending on nil client is a no-op
 	var c *gotify.Client

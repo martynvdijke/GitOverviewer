@@ -9,6 +9,9 @@
             <button class="nav-link active btn-sm" id="otel-tab" data-bs-toggle="pill" data-bs-target="#otel-panel" type="button" role="tab">OTEL Export</button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link btn-sm" id="gotify-tab" data-bs-toggle="pill" data-bs-target="#gotify-panel" type="button" role="tab">Gotify</button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link btn-sm" id="users-tab" data-bs-toggle="pill" data-bs-target="#users-panel" type="button" role="tab" hx-get="/admin/users" hx-target="#users-panel" hx-trigger="show.bs.tab">Users</button>
         </li>
     </ul>
@@ -16,6 +19,9 @@
     <div class="tab-content">
         <div class="tab-pane fade show active" id="otel-panel" role="tabpanel">
             {{template "admin_otel_form" .}}
+        </div>
+        <div class="tab-pane fade" id="gotify-panel" role="tabpanel">
+            {{template "admin_gotify_form" .}}
         </div>
         <div class="tab-pane fade" id="users-panel" role="tabpanel">
             <p class="text-secondary small">Click the Users tab to load the user list.</p>
@@ -64,6 +70,30 @@
             <div class="d-flex align-items-center gap-2">
                 <button type="submit" class="btn btn-sm btn-success">Save</button>
                 <span id="otel-status"></span>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
+
+{{define "admin_gotify_form"}}
+<div class="card border-secondary">
+    <div class="card-body">
+        <h5 class="card-title">Gotify Notifications</h5>
+        <p class="card-text text-secondary small">Configure push notifications for deploy events. When both fields are blank, the <code>GOTIFY_URL</code> / <code>GOTIFY_TOKEN</code> env vars are used instead.</p>
+        <form hx-post="/admin/gotify" hx-target="#gotify-panel" hx-swap="innerHTML">
+            <div class="mb-3">
+                <label class="form-label small text-secondary">Gotify Server URL</label>
+                <input type="text" name="gotify_url" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="https://gotify.example.com" value="{{if .Config}}{{.Config.GotifyURL}}{{end}}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label small text-secondary">Application Token</label>
+                <input type="password" name="gotify_token" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="{{if and .Config .Config.GotifyToken}}Token saved — leave blank to keep{{else}}Paste Gotify app token{{end}}" autocomplete="off">
+                <div class="form-text text-secondary small">Stored tokens are never displayed. Leave blank to keep the existing token.</div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="submit" class="btn btn-sm btn-success">Save</button>
+                <span id="gotify-status"></span>
             </div>
         </form>
     </div>

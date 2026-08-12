@@ -27,6 +27,10 @@ type AdminConfig struct {
 	LogsEnabled bool `json:"logs_enabled,omitempty"`
 	// LogSeverity holds the value of the "log_severity" field.
 	LogSeverity string `json:"log_severity,omitempty"`
+	// GotifyURL holds the value of the "gotify_url" field.
+	GotifyURL string `json:"gotify_url,omitempty"`
+	// GotifyToken holds the value of the "gotify_token" field.
+	GotifyToken string `json:"gotify_token,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt    time.Time `json:"updated_at,omitempty"`
 	selectValues sql.SelectValues
@@ -41,7 +45,7 @@ func (*AdminConfig) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case adminconfig.FieldID:
 			values[i] = new(sql.NullInt64)
-		case adminconfig.FieldOtelEndpoint, adminconfig.FieldLogSeverity:
+		case adminconfig.FieldOtelEndpoint, adminconfig.FieldLogSeverity, adminconfig.FieldGotifyURL, adminconfig.FieldGotifyToken:
 			values[i] = new(sql.NullString)
 		case adminconfig.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -95,6 +99,18 @@ func (_m *AdminConfig) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field log_severity", values[i])
 			} else if value.Valid {
 				_m.LogSeverity = value.String
+			}
+		case adminconfig.FieldGotifyURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field gotify_url", values[i])
+			} else if value.Valid {
+				_m.GotifyURL = value.String
+			}
+		case adminconfig.FieldGotifyToken:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field gotify_token", values[i])
+			} else if value.Valid {
+				_m.GotifyToken = value.String
 			}
 		case adminconfig.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -152,6 +168,12 @@ func (_m *AdminConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("log_severity=")
 	builder.WriteString(_m.LogSeverity)
+	builder.WriteString(", ")
+	builder.WriteString("gotify_url=")
+	builder.WriteString(_m.GotifyURL)
+	builder.WriteString(", ")
+	builder.WriteString("gotify_token=")
+	builder.WriteString(_m.GotifyToken)
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))

@@ -27,8 +27,12 @@ type message struct {
 // New creates a Gotify client from env vars.
 // Returns nil if GOTIFY_URL or GOTIFY_TOKEN is not set.
 func New() *Client {
-	baseURL := os.Getenv("GOTIFY_URL")
-	token := os.Getenv("GOTIFY_TOKEN")
+	return NewWith(os.Getenv("GOTIFY_URL"), os.Getenv("GOTIFY_TOKEN"))
+}
+
+// NewWith creates a Gotify client from explicit url and token (e.g. values
+// saved through the admin panel). Returns nil if either is empty.
+func NewWith(baseURL, token string) *Client {
 	if baseURL == "" || token == "" {
 		return nil
 	}

@@ -48,6 +48,8 @@ type AdminConfigMutation struct {
 	metrics_enabled *bool
 	logs_enabled    *bool
 	log_severity    *string
+	gotify_url      *string
+	gotify_token    *string
 	updated_at      *time.Time
 	clearedFields   map[string]struct{}
 	done            bool
@@ -352,6 +354,104 @@ func (m *AdminConfigMutation) ResetLogSeverity() {
 	m.log_severity = nil
 }
 
+// SetGotifyURL sets the "gotify_url" field.
+func (m *AdminConfigMutation) SetGotifyURL(s string) {
+	m.gotify_url = &s
+}
+
+// GotifyURL returns the value of the "gotify_url" field in the mutation.
+func (m *AdminConfigMutation) GotifyURL() (r string, exists bool) {
+	v := m.gotify_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGotifyURL returns the old "gotify_url" field's value of the AdminConfig entity.
+// If the AdminConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AdminConfigMutation) OldGotifyURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGotifyURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGotifyURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGotifyURL: %w", err)
+	}
+	return oldValue.GotifyURL, nil
+}
+
+// ClearGotifyURL clears the value of the "gotify_url" field.
+func (m *AdminConfigMutation) ClearGotifyURL() {
+	m.gotify_url = nil
+	m.clearedFields[adminconfig.FieldGotifyURL] = struct{}{}
+}
+
+// GotifyURLCleared returns if the "gotify_url" field was cleared in this mutation.
+func (m *AdminConfigMutation) GotifyURLCleared() bool {
+	_, ok := m.clearedFields[adminconfig.FieldGotifyURL]
+	return ok
+}
+
+// ResetGotifyURL resets all changes to the "gotify_url" field.
+func (m *AdminConfigMutation) ResetGotifyURL() {
+	m.gotify_url = nil
+	delete(m.clearedFields, adminconfig.FieldGotifyURL)
+}
+
+// SetGotifyToken sets the "gotify_token" field.
+func (m *AdminConfigMutation) SetGotifyToken(s string) {
+	m.gotify_token = &s
+}
+
+// GotifyToken returns the value of the "gotify_token" field in the mutation.
+func (m *AdminConfigMutation) GotifyToken() (r string, exists bool) {
+	v := m.gotify_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGotifyToken returns the old "gotify_token" field's value of the AdminConfig entity.
+// If the AdminConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AdminConfigMutation) OldGotifyToken(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGotifyToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGotifyToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGotifyToken: %w", err)
+	}
+	return oldValue.GotifyToken, nil
+}
+
+// ClearGotifyToken clears the value of the "gotify_token" field.
+func (m *AdminConfigMutation) ClearGotifyToken() {
+	m.gotify_token = nil
+	m.clearedFields[adminconfig.FieldGotifyToken] = struct{}{}
+}
+
+// GotifyTokenCleared returns if the "gotify_token" field was cleared in this mutation.
+func (m *AdminConfigMutation) GotifyTokenCleared() bool {
+	_, ok := m.clearedFields[adminconfig.FieldGotifyToken]
+	return ok
+}
+
+// ResetGotifyToken resets all changes to the "gotify_token" field.
+func (m *AdminConfigMutation) ResetGotifyToken() {
+	m.gotify_token = nil
+	delete(m.clearedFields, adminconfig.FieldGotifyToken)
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (m *AdminConfigMutation) SetUpdatedAt(t time.Time) {
 	m.updated_at = &t
@@ -422,7 +522,7 @@ func (m *AdminConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AdminConfigMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
 	if m.otel_endpoint != nil {
 		fields = append(fields, adminconfig.FieldOtelEndpoint)
 	}
@@ -437,6 +537,12 @@ func (m *AdminConfigMutation) Fields() []string {
 	}
 	if m.log_severity != nil {
 		fields = append(fields, adminconfig.FieldLogSeverity)
+	}
+	if m.gotify_url != nil {
+		fields = append(fields, adminconfig.FieldGotifyURL)
+	}
+	if m.gotify_token != nil {
+		fields = append(fields, adminconfig.FieldGotifyToken)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, adminconfig.FieldUpdatedAt)
@@ -459,6 +565,10 @@ func (m *AdminConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.LogsEnabled()
 	case adminconfig.FieldLogSeverity:
 		return m.LogSeverity()
+	case adminconfig.FieldGotifyURL:
+		return m.GotifyURL()
+	case adminconfig.FieldGotifyToken:
+		return m.GotifyToken()
 	case adminconfig.FieldUpdatedAt:
 		return m.UpdatedAt()
 	}
@@ -480,6 +590,10 @@ func (m *AdminConfigMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldLogsEnabled(ctx)
 	case adminconfig.FieldLogSeverity:
 		return m.OldLogSeverity(ctx)
+	case adminconfig.FieldGotifyURL:
+		return m.OldGotifyURL(ctx)
+	case adminconfig.FieldGotifyToken:
+		return m.OldGotifyToken(ctx)
 	case adminconfig.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
 	}
@@ -526,6 +640,20 @@ func (m *AdminConfigMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLogSeverity(v)
 		return nil
+	case adminconfig.FieldGotifyURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGotifyURL(v)
+		return nil
+	case adminconfig.FieldGotifyToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGotifyToken(v)
+		return nil
 	case adminconfig.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -566,6 +694,12 @@ func (m *AdminConfigMutation) ClearedFields() []string {
 	if m.FieldCleared(adminconfig.FieldOtelEndpoint) {
 		fields = append(fields, adminconfig.FieldOtelEndpoint)
 	}
+	if m.FieldCleared(adminconfig.FieldGotifyURL) {
+		fields = append(fields, adminconfig.FieldGotifyURL)
+	}
+	if m.FieldCleared(adminconfig.FieldGotifyToken) {
+		fields = append(fields, adminconfig.FieldGotifyToken)
+	}
 	return fields
 }
 
@@ -582,6 +716,12 @@ func (m *AdminConfigMutation) ClearField(name string) error {
 	switch name {
 	case adminconfig.FieldOtelEndpoint:
 		m.ClearOtelEndpoint()
+		return nil
+	case adminconfig.FieldGotifyURL:
+		m.ClearGotifyURL()
+		return nil
+	case adminconfig.FieldGotifyToken:
+		m.ClearGotifyToken()
 		return nil
 	}
 	return fmt.Errorf("unknown AdminConfig nullable field %s", name)
@@ -605,6 +745,12 @@ func (m *AdminConfigMutation) ResetField(name string) error {
 		return nil
 	case adminconfig.FieldLogSeverity:
 		m.ResetLogSeverity()
+		return nil
+	case adminconfig.FieldGotifyURL:
+		m.ResetGotifyURL()
+		return nil
+	case adminconfig.FieldGotifyToken:
+		m.ResetGotifyToken()
 		return nil
 	case adminconfig.FieldUpdatedAt:
 		m.ResetUpdatedAt()

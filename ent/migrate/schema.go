@@ -16,6 +16,8 @@ var (
 		{Name: "metrics_enabled", Type: field.TypeBool, Default: false},
 		{Name: "logs_enabled", Type: field.TypeBool, Default: false},
 		{Name: "log_severity", Type: field.TypeString, Default: "warning"},
+		{Name: "gotify_url", Type: field.TypeString, Nullable: true},
+		{Name: "gotify_token", Type: field.TypeString, Nullable: true},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
 	// AdminConfigsTable holds the schema information for the "admin_configs" table.

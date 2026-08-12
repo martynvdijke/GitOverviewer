@@ -90,6 +90,34 @@ func (_c *AdminConfigCreate) SetNillableLogSeverity(v *string) *AdminConfigCreat
 	return _c
 }
 
+// SetGotifyURL sets the "gotify_url" field.
+func (_c *AdminConfigCreate) SetGotifyURL(v string) *AdminConfigCreate {
+	_c.mutation.SetGotifyURL(v)
+	return _c
+}
+
+// SetNillableGotifyURL sets the "gotify_url" field if the given value is not nil.
+func (_c *AdminConfigCreate) SetNillableGotifyURL(v *string) *AdminConfigCreate {
+	if v != nil {
+		_c.SetGotifyURL(*v)
+	}
+	return _c
+}
+
+// SetGotifyToken sets the "gotify_token" field.
+func (_c *AdminConfigCreate) SetGotifyToken(v string) *AdminConfigCreate {
+	_c.mutation.SetGotifyToken(v)
+	return _c
+}
+
+// SetNillableGotifyToken sets the "gotify_token" field if the given value is not nil.
+func (_c *AdminConfigCreate) SetNillableGotifyToken(v *string) *AdminConfigCreate {
+	if v != nil {
+		_c.SetGotifyToken(*v)
+	}
+	return _c
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_c *AdminConfigCreate) SetUpdatedAt(v time.Time) *AdminConfigCreate {
 	_c.mutation.SetUpdatedAt(v)
@@ -247,6 +275,14 @@ func (_c *AdminConfigCreate) createSpec() (*AdminConfig, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.LogSeverity(); ok {
 		_spec.SetField(adminconfig.FieldLogSeverity, field.TypeString, value)
 		_node.LogSeverity = value
+	}
+	if value, ok := _c.mutation.GotifyURL(); ok {
+		_spec.SetField(adminconfig.FieldGotifyURL, field.TypeString, value)
+		_node.GotifyURL = value
+	}
+	if value, ok := _c.mutation.GotifyToken(); ok {
+		_spec.SetField(adminconfig.FieldGotifyToken, field.TypeString, value)
+		_node.GotifyToken = value
 	}
 	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(adminconfig.FieldUpdatedAt, field.TypeTime, value)

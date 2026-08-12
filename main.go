@@ -285,15 +285,32 @@ func main() {
 		log.Printf("Deploy: error loading targets: %v (deploy disabled)", err)
 	} else if len(targets) > 0 {
 		d := deploy.NewDeployer()
-		g := gotify.New()
-		webhookHandler.SetDeployer(targets, d, g)
-		log.Printf("Deploy: %d target(s) configured, backend=%s, gotify=%v", len(targets), deploy.DeployBackend(), g != nil)
+		webhookHandler.SetDeployer(targets, d, nil)
+		log.Printf("Deploy: %d target(s) configured, backend=%s", len(targets), deploy.DeployBackend())
 	}
-	deployHandler := handlers.NewDeployHandler(gotify.New() != nil)
+	deployHandler := handlers.NewDeployHandler(false)
 	feedHandler := handlers.NewFeedHandler(client)
 	trendsHandler := handlers.NewTrendsHandler(client)
 	yearOverviewHandler := handlers.NewYearOverviewHandler(client, syncer)
 	adminHandler := handlers.NewAdminHandler(client, otelManager)
+
+	// Gotify notifications: admin-panel settings take precedence over the
+	// GOTIFY_URL/GOTIFY_TOKEN env vars. reloadGotify re-reads the DB so an
+	// admin save applies live (no restart), and updates both the deploy
+	// webhook notifier and the deploy-tab indicator.
+	reloadGotify := func() *gotify.Client {
+		g := gotify.New() // env fallback
+		if cfg, err := client.AdminConfig.Get(context.Background(), 1); err == nil {
+			if dbg := gotify.NewWith(cfg.GotifyURL, cfg.GotifyToken); dbg != nil {
+				g = dbg
+			}
+		}
+		webhookHandler.SetGotify(g)
+		deployHandler.SetGotifyOn(g != nil)
+		return g
+	}
+	adminHandler.SetGotifyReload(func() { reloadGotify() })
+	reloadGotify()
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -371,6 +388,7 @@ func main() {
 		{
 			admin.GET("", adminHandler.Index)
 			admin.POST("/otel", adminHandler.UpdateOTEL)
+			admin.POST("/gotify", adminHandler.UpdateGotify)
 			admin.GET("/users", adminHandler.ListUsers)
 			admin.POST("/users/:id/toggle-admin", adminHandler.ToggleAdmin)
 		}

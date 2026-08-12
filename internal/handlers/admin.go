@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"gitlens/ent"
 	"gitlens/internal/otel"
@@ -14,10 +15,19 @@ import (
 type AdminHandler struct {
 	client      *ent.Client
 	otelManager *otel.Manager
+	// gotifyReload re-reads Gotify settings from the DB and re-configures
+	// the runtime notifier. Set by main; nil in tests.
+	gotifyReload func()
 }
 
 func NewAdminHandler(client *ent.Client, otelManager *otel.Manager) *AdminHandler {
 	return &AdminHandler{client: client, otelManager: otelManager}
+}
+
+// SetGotifyReload registers a callback invoked after Gotify settings are
+// saved so the runtime notifier picks up changes without a restart.
+func (h *AdminHandler) SetGotifyReload(fn func()) {
+	h.gotifyReload = fn
 }
 
 // Index renders the admin panel page with the OTEL config form and user list.
@@ -136,6 +146,42 @@ func (h *AdminHandler) ToggleAdmin(c *gin.Context) {
 	h.renderUserRows(c)
 }
 
+// UpdateGotify saves the Gotify URL/token from the admin form, reloads the
+// runtime notifier, and re-renders the form. A blank token keeps the
+// previously saved token.
+func (h *AdminHandler) UpdateGotify(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	url := strings.TrimSpace(c.PostForm("gotify_url"))
+	token := strings.TrimSpace(c.PostForm("gotify_token"))
+
+	_, err := h.client.AdminConfig.Get(ctx, 1)
+	if ent.IsNotFound(err) {
+		_, err = h.client.AdminConfig.Create().
+			SetID(1).
+			SetGotifyURL(url).
+			SetGotifyToken(token).
+			Save(ctx)
+	} else if err == nil {
+		u := h.client.AdminConfig.UpdateOneID(1).SetGotifyURL(url)
+		if token != "" {
+			u = u.SetGotifyToken(token)
+		}
+		_, err = u.Save(ctx)
+	}
+	if err != nil {
+		log.Printf("admin: error saving Gotify config: %v", err)
+		c.String(http.StatusInternalServerError, "Failed to save Gotify configuration")
+		return
+	}
+
+	if h.gotifyReload != nil {
+		h.gotifyReload()
+	}
+
+	h.renderGotifyForm(c)
+}
+
 // ---- partial render helpers ----
 
 func (h *AdminHandler) renderOTELForm(c *gin.Context) {
@@ -145,6 +191,15 @@ func (h *AdminHandler) renderOTELForm(c *gin.Context) {
 		log.Printf("admin: error loading config for form: %v", err)
 	}
 	c.HTML(http.StatusOK, "admin_otel_form", gin.H{"Config": cfg})
+}
+
+func (h *AdminHandler) renderGotifyForm(c *gin.Context) {
+	ctx := c.Request.Context()
+	cfg, err := h.client.AdminConfig.Get(ctx, 1)
+	if err != nil && !ent.IsNotFound(err) {
+		log.Printf("admin: error loading config for gotify form: %v", err)
+	}
+	c.HTML(http.StatusOK, "admin_gotify_form", gin.H{"Config": cfg})
 }
 
 func (h *AdminHandler) renderUserRows(c *gin.Context) {

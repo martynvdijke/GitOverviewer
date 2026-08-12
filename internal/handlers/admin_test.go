@@ -56,8 +56,9 @@ func createRegularUser(t *testing.T, client *ent.Client) int {
 var adminTestTmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"printf": fmt.Sprintf,
 }).Parse(`
-{{define "admin_panel"}}<div>admin_panel {{template "admin_otel_form" .}} users={{len .Users}} user_id={{.UserID}}</div>{{end}}
+{{define "admin_panel"}}<div>admin_panel {{template "admin_otel_form" .}} {{template "admin_gotify_form" .}} users={{len .Users}} user_id={{.UserID}}</div>{{end}}
 {{define "admin_otel_form"}}<div>otel_form endpoint={{if .Config}}{{.Config.OtelEndpoint}}{{end}}</div>{{end}}
+{{define "admin_gotify_form"}}<div>gotify_form url={{if .Config}}{{.Config.GotifyURL}}{{end}}</div>{{end}}
 {{define "admin_users_tab"}}<div>users_tab {{range .Users}}user={{.Login}}:admin={{.IsAdmin}} {{end}}current={{.UserID}}</div>{{end}}
 `))
 
@@ -78,6 +79,9 @@ func adminRequest(h *AdminHandler, userID int64, method, path, body string) *htt
 	case method == "POST" && path == "/admin/otel":
 		handlerFn = h.UpdateOTEL
 		routeMethod, routePath = "POST", "/admin/otel"
+	case method == "POST" && path == "/admin/gotify":
+		handlerFn = h.UpdateGotify
+		routeMethod, routePath = "POST", "/admin/gotify"
 	case method == "GET" && path == "/admin/users":
 		handlerFn = h.ListUsers
 		routeMethod, routePath = "GET", "/admin/users"
@@ -300,6 +304,80 @@ func TestAdminHandler_ToggleAdmin_Demote(t *testing.T) {
 	}
 	if u.IsAdmin {
 		t.Fatal("expected other admin to be demoted")
+	}
+}
+
+func TestAdminHandler_UpdateGotify_Create(t *testing.T) {
+	h, client := newTestAdminHandler(t)
+	adminID := createAdminUser(t, client)
+
+	body := "gotify_url=https%3A%2F%2Fgotify.example.com&gotify_token=secret123"
+	w := adminRequest(h, int64(adminID), "POST", "/admin/gotify", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "gotify_form") {
+		t.Fatal("expected gotify_form in response")
+	}
+
+	cfg, err := client.AdminConfig.Get(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected AdminConfig to be created: %v", err)
+	}
+	if cfg.GotifyURL != "https://gotify.example.com" {
+		t.Fatalf("expected GotifyURL, got '%s'", cfg.GotifyURL)
+	}
+	if cfg.GotifyToken != "secret123" {
+		t.Fatalf("expected GotifyToken, got '%s'", cfg.GotifyToken)
+	}
+}
+
+func TestAdminHandler_UpdateGotify_BlankTokenKeepsExisting(t *testing.T) {
+	h, client := newTestAdminHandler(t)
+	adminID := createAdminUser(t, client)
+
+	_, err := client.AdminConfig.Create().
+		SetID(1).
+		SetGotifyURL("https://old.example.com").
+		SetGotifyToken("oldtoken").
+		Save(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Blank token must preserve the previously saved token.
+	body := "gotify_url=https%3A%2F%2Fnew.example.com&gotify_token="
+	w := adminRequest(h, int64(adminID), "POST", "/admin/gotify", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+
+	cfg, err := client.AdminConfig.Get(context.Background(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.GotifyURL != "https://new.example.com" {
+		t.Fatalf("expected updated GotifyURL, got '%s'", cfg.GotifyURL)
+	}
+	if cfg.GotifyToken != "oldtoken" {
+		t.Fatalf("expected token preserved, got '%s'", cfg.GotifyToken)
+	}
+}
+
+func TestAdminHandler_UpdateGotify_ReloadInvoked(t *testing.T) {
+	h, client := newTestAdminHandler(t)
+	adminID := createAdminUser(t, client)
+
+	reloaded := false
+	h.SetGotifyReload(func() { reloaded = true })
+
+	body := "gotify_url=https%3A%2F%2Fgotify.example.com&gotify_token=secret123"
+	w := adminRequest(h, int64(adminID), "POST", "/admin/gotify", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if !reloaded {
+		t.Fatal("expected gotifyReload callback to be invoked after save")
 	}
 }
 

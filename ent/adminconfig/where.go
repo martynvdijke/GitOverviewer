@@ -79,6 +79,16 @@ func LogSeverity(v string) predicate.AdminConfig {
 	return predicate.AdminConfig(sql.FieldEQ(FieldLogSeverity, v))
 }
 
+// GotifyURL applies equality check predicate on the "gotify_url" field. It's identical to GotifyURLEQ.
+func GotifyURL(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEQ(FieldGotifyURL, v))
+}
+
+// GotifyToken applies equality check predicate on the "gotify_token" field. It's identical to GotifyTokenEQ.
+func GotifyToken(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEQ(FieldGotifyToken, v))
+}
+
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.AdminConfig {
 	return predicate.AdminConfig(sql.FieldEQ(FieldUpdatedAt, v))
@@ -252,6 +262,156 @@ func LogSeverityEqualFold(v string) predicate.AdminConfig {
 // LogSeverityContainsFold applies the ContainsFold predicate on the "log_severity" field.
 func LogSeverityContainsFold(v string) predicate.AdminConfig {
 	return predicate.AdminConfig(sql.FieldContainsFold(FieldLogSeverity, v))
+}
+
+// GotifyURLEQ applies the EQ predicate on the "gotify_url" field.
+func GotifyURLEQ(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEQ(FieldGotifyURL, v))
+}
+
+// GotifyURLNEQ applies the NEQ predicate on the "gotify_url" field.
+func GotifyURLNEQ(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNEQ(FieldGotifyURL, v))
+}
+
+// GotifyURLIn applies the In predicate on the "gotify_url" field.
+func GotifyURLIn(vs ...string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldIn(FieldGotifyURL, vs...))
+}
+
+// GotifyURLNotIn applies the NotIn predicate on the "gotify_url" field.
+func GotifyURLNotIn(vs ...string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNotIn(FieldGotifyURL, vs...))
+}
+
+// GotifyURLGT applies the GT predicate on the "gotify_url" field.
+func GotifyURLGT(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldGT(FieldGotifyURL, v))
+}
+
+// GotifyURLGTE applies the GTE predicate on the "gotify_url" field.
+func GotifyURLGTE(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldGTE(FieldGotifyURL, v))
+}
+
+// GotifyURLLT applies the LT predicate on the "gotify_url" field.
+func GotifyURLLT(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldLT(FieldGotifyURL, v))
+}
+
+// GotifyURLLTE applies the LTE predicate on the "gotify_url" field.
+func GotifyURLLTE(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldLTE(FieldGotifyURL, v))
+}
+
+// GotifyURLContains applies the Contains predicate on the "gotify_url" field.
+func GotifyURLContains(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldContains(FieldGotifyURL, v))
+}
+
+// GotifyURLHasPrefix applies the HasPrefix predicate on the "gotify_url" field.
+func GotifyURLHasPrefix(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldHasPrefix(FieldGotifyURL, v))
+}
+
+// GotifyURLHasSuffix applies the HasSuffix predicate on the "gotify_url" field.
+func GotifyURLHasSuffix(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldHasSuffix(FieldGotifyURL, v))
+}
+
+// GotifyURLIsNil applies the IsNil predicate on the "gotify_url" field.
+func GotifyURLIsNil() predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldIsNull(FieldGotifyURL))
+}
+
+// GotifyURLNotNil applies the NotNil predicate on the "gotify_url" field.
+func GotifyURLNotNil() predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNotNull(FieldGotifyURL))
+}
+
+// GotifyURLEqualFold applies the EqualFold predicate on the "gotify_url" field.
+func GotifyURLEqualFold(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEqualFold(FieldGotifyURL, v))
+}
+
+// GotifyURLContainsFold applies the ContainsFold predicate on the "gotify_url" field.
+func GotifyURLContainsFold(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldContainsFold(FieldGotifyURL, v))
+}
+
+// GotifyTokenEQ applies the EQ predicate on the "gotify_token" field.
+func GotifyTokenEQ(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEQ(FieldGotifyToken, v))
+}
+
+// GotifyTokenNEQ applies the NEQ predicate on the "gotify_token" field.
+func GotifyTokenNEQ(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNEQ(FieldGotifyToken, v))
+}
+
+// GotifyTokenIn applies the In predicate on the "gotify_token" field.
+func GotifyTokenIn(vs ...string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldIn(FieldGotifyToken, vs...))
+}
+
+// GotifyTokenNotIn applies the NotIn predicate on the "gotify_token" field.
+func GotifyTokenNotIn(vs ...string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNotIn(FieldGotifyToken, vs...))
+}
+
+// GotifyTokenGT applies the GT predicate on the "gotify_token" field.
+func GotifyTokenGT(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldGT(FieldGotifyToken, v))
+}
+
+// GotifyTokenGTE applies the GTE predicate on the "gotify_token" field.
+func GotifyTokenGTE(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldGTE(FieldGotifyToken, v))
+}
+
+// GotifyTokenLT applies the LT predicate on the "gotify_token" field.
+func GotifyTokenLT(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldLT(FieldGotifyToken, v))
+}
+
+// GotifyTokenLTE applies the LTE predicate on the "gotify_token" field.
+func GotifyTokenLTE(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldLTE(FieldGotifyToken, v))
+}
+
+// GotifyTokenContains applies the Contains predicate on the "gotify_token" field.
+func GotifyTokenContains(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldContains(FieldGotifyToken, v))
+}
+
+// GotifyTokenHasPrefix applies the HasPrefix predicate on the "gotify_token" field.
+func GotifyTokenHasPrefix(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldHasPrefix(FieldGotifyToken, v))
+}
+
+// GotifyTokenHasSuffix applies the HasSuffix predicate on the "gotify_token" field.
+func GotifyTokenHasSuffix(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldHasSuffix(FieldGotifyToken, v))
+}
+
+// GotifyTokenIsNil applies the IsNil predicate on the "gotify_token" field.
+func GotifyTokenIsNil() predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldIsNull(FieldGotifyToken))
+}
+
+// GotifyTokenNotNil applies the NotNil predicate on the "gotify_token" field.
+func GotifyTokenNotNil() predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNotNull(FieldGotifyToken))
+}
+
+// GotifyTokenEqualFold applies the EqualFold predicate on the "gotify_token" field.
+func GotifyTokenEqualFold(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEqualFold(FieldGotifyToken, v))
+}
+
+// GotifyTokenContainsFold applies the ContainsFold predicate on the "gotify_token" field.
+func GotifyTokenContainsFold(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldContainsFold(FieldGotifyToken, v))
 }
 
 // UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
