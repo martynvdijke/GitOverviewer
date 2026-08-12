@@ -25,14 +25,14 @@ import (
 // mergeFakeProvider is a test double for provider.Provider whose merge and
 // close behavior is scriptable per PR number.
 type mergeFakeProvider struct {
-	name        string
-	mergeFn     func(number int) (bool, string, error)
-	mergeCalls  []int
-	closeFn     func(number int) error
-	closeCalls  []int
-	rerunFn     func(number int) (int, error)
-	rerunCalls  []int
-	listPRs     []*ghclient.PullRequest
+	name       string
+	mergeFn    func(number int) (bool, string, error)
+	mergeCalls []int
+	closeFn    func(number int) error
+	closeCalls []int
+	rerunFn    func(number int) (int, error)
+	rerunCalls []int
+	listPRs    []*ghclient.PullRequest
 }
 
 func (f *mergeFakeProvider) Name() string { return f.name }
