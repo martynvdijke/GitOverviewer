@@ -1,3 +1,16 @@
+# [1.25.0](https://github.com/martynvdijke/gitlens/compare/v1.24.0...v1.25.0) (2026-08-12)
+
+
+### Bug Fixes
+
+* gofmt merge_test.go so release ci passes ([2af9768](https://github.com/martynvdijke/gitlens/commit/2af976863d2b04c0469a3a2b2bd07fc05742c05c))
+
+
+### Features
+
+* configure gotify deploy notifications from admin panel ([fc14bcf](https://github.com/martynvdijke/gitlens/commit/fc14bcfc5efeadb7fb5981b862695c283daef206))
+* re-run failed builds on pull requests ([7c7d544](https://github.com/martynvdijke/gitlens/commit/7c7d544c92ddb6c84eceb14c9f0657d69079f4f1))
+
 # [1.24.0](https://github.com/martynvdijke/gitlens/compare/v1.23.0...v1.24.0) (2026-08-12)
 
 
