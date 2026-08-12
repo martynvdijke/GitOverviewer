@@ -1,3 +1,15 @@
+# [1.24.0](https://github.com/martynvdijke/gitlens/compare/v1.23.0...v1.24.0) (2026-08-12)
+
+
+### Bug Fixes
+
+* ship docker cli in image so label discovery works ([a9c2f76](https://github.com/martynvdijke/gitlens/commit/a9c2f765ac6144a002398edb4f90d01db5a6d21d))
+
+
+### Features
+
+* show labeled containers and tracking status in deploy tab ([2639778](https://github.com/martynvdijke/gitlens/commit/263977866d7e498c74a13146f183e899efe976e2))
+
 # [1.23.0](https://github.com/martynvdijke/gitlens/compare/v1.22.0...v1.23.0) (2026-08-12)
 
 
