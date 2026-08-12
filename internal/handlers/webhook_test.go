@@ -7,9 +7,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"gitlens/ent/enttest"
@@ -194,6 +196,7 @@ type fakeDeployer struct {
 		Target deploy.Target
 		Tag    string
 	}
+	err  error
 	done chan struct{}
 }
 
@@ -207,19 +210,47 @@ func (f *fakeDeployer) PullAndUpdate(_ context.Context, target deploy.Target, ta
 		Target deploy.Target
 		Tag    string
 	}{target, tag})
-	return nil
+	return f.err
 }
 
 func (f *fakeDeployer) waitForCall() {
 	<-f.done
 }
 
+// fakeNotifier captures Gotify sends for testing.
+type fakeNotifier struct {
+	sends []struct {
+		Title    string
+		Message  string
+		Priority int
+	}
+}
+
+func (f *fakeNotifier) Send(_ context.Context, title, message string, priority int) error {
+	f.sends = append(f.sends, struct {
+		Title    string
+		Message  string
+		Priority int
+	}{title, message, priority})
+	return nil
+}
+
 func makeReleasePayload(action, tag, repo string, prerelease bool) string {
+	return makeReleasePayloadFull(action, tag, repo, prerelease,
+		"My Awesome Release", "octocat", "https://github.com/"+repo+"/releases/tag/"+tag)
+}
+
+func makeReleasePayloadFull(action, tag, repo string, prerelease bool, name, author, url string) string {
 	p, _ := json.Marshal(map[string]interface{}{
 		"action": action,
 		"release": map[string]interface{}{
 			"tag_name":   tag,
 			"prerelease": prerelease,
+			"name":       name,
+			"html_url":   url,
+			"author": map[string]interface{}{
+				"login": author,
+			},
 		},
 		"repository": map[string]interface{}{
 			"full_name": repo,
@@ -416,5 +447,96 @@ func TestHandleRelease_BadSignature(t *testing.T) {
 	}
 	if len(fake.calls) != 0 {
 		t.Fatalf("expected 0 deploy calls after bad sig, got %d", len(fake.calls))
+	}
+}
+
+func TestHandleRelease_GotifySuccessMentionsRelease(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "ghcr.io/test/repo",
+		Container:   "test-app",
+		TagStrategy: deploy.TagStrategyReleaseTag,
+	}
+	fake := newFakeDeployer()
+	notif := &fakeNotifier{}
+	handler.SetDeployer([]deploy.Target{target}, fake, notif)
+
+	payload := makeReleasePayloadFull("published", "v1.2.3", "test/repo", false,
+		"New Charting", "octocat", "https://github.com/test/repo/releases/tag/v1.2.3")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "release")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	fake.waitForCall()
+	if len(notif.sends) != 1 {
+		t.Fatalf("expected 1 notification, got %d", len(notif.sends))
+	}
+	s := notif.sends[0]
+	for _, want := range []string{
+		`"New Charting"`, // release name
+		"v1.2.3",         // release tag
+		"octocat",        // author
+		"https://github.com/test/repo/releases/tag/v1.2.3", // release link
+		"test-app",                // container
+		"ghcr.io/test/repo:1.2.3", // image:tag
+	} {
+		if !strings.Contains(s.Message, want) {
+			t.Errorf("notification should mention %q, got: %s", want, s.Message)
+		}
+	}
+	if !strings.Contains(s.Title, "v1.2.3") {
+		t.Errorf("title should mention the release tag, got: %s", s.Title)
+	}
+	if s.Priority != 2 {
+		t.Errorf("expected priority 2 for success, got %d", s.Priority)
+	}
+}
+
+func TestHandleRelease_GotifyFailureMentionsReleaseAndError(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "img",
+		Container:   "c",
+		TagStrategy: deploy.TagStrategyReleaseTag,
+	}
+	fake := newFakeDeployer()
+	fake.err = errors.New("pull failed")
+	notif := &fakeNotifier{}
+	handler.SetDeployer([]deploy.Target{target}, fake, notif)
+
+	payload := makeReleasePayload("published", "v1.2.3", "test/repo", false)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "release")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	fake.waitForCall()
+	if len(notif.sends) != 1 {
+		t.Fatalf("expected 1 notification, got %d", len(notif.sends))
+	}
+	s := notif.sends[0]
+	if !strings.Contains(s.Message, "pull failed") {
+		t.Errorf("notification should mention the error, got: %s", s.Message)
+	}
+	if !strings.Contains(s.Message, "octocat") {
+		t.Errorf("notification should mention the release author, got: %s", s.Message)
+	}
+	if s.Priority != 5 {
+		t.Errorf("expected priority 5 for failure, got %d", s.Priority)
 	}
 }

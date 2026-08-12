@@ -157,8 +157,21 @@ Notes:
    GOTIFY_TOKEN=abc123
    ```
 
-   Success and failure messages are pushed with the release tag and the
-   image:tag that was deployed.
+   After every deploy, a notification is pushed that **mentions the release** —
+   its title, tag, author, and a link — plus the container and image that were
+   updated. Example success message:
+
+   ```
+   Title:   test/repo v1.2.3 release deploy
+
+   Release "New Charting" (v1.2.3)
+   By: octocat
+   Container test-app updated to ghcr.io/test/repo:1.2.3
+   https://github.com/test/repo/releases/tag/v1.2.3
+   ```
+
+   Failures use a higher priority (5 vs 2) and include the error, e.g.
+   `Deploy FAILED: test-app -> ghcr.io/test/repo:1.2.3\nError: pull failed ...`.
 
 6. **Restart GitLens** and check the logs for the deploy subsystem line:
 

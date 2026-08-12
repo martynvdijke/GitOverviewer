@@ -10,15 +10,21 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"gitlens/ent"
 	"gitlens/ent/repository"
 	"gitlens/internal/deploy"
-	"gitlens/internal/gotify"
 	"gitlens/internal/sync"
 
 	"github.com/gin-gonic/gin"
 )
+
+// notifier is the push channel used for deploy notifications.
+// *gotify.Client satisfies it; tests inject a fake.
+type notifier interface {
+	Send(ctx context.Context, title, message string, priority int) error
+}
 
 type WebhookHandler struct {
 	client   *ent.Client
@@ -26,7 +32,7 @@ type WebhookHandler struct {
 	secret   string
 	targets  []deploy.Target
 	deployer deploy.Deployer
-	gotify   *gotify.Client
+	gotify   notifier
 }
 
 func NewWebhookHandler(client *ent.Client, syncer *sync.Syncer, secret string) *WebhookHandler {
@@ -38,7 +44,7 @@ func NewWebhookHandler(client *ent.Client, syncer *sync.Syncer, secret string) *
 }
 
 // SetDeployer configures the deploy subsystem. Call before server starts.
-func (h *WebhookHandler) SetDeployer(targets []deploy.Target, d deploy.Deployer, g *gotify.Client) {
+func (h *WebhookHandler) SetDeployer(targets []deploy.Target, d deploy.Deployer, g notifier) {
 	h.targets = targets
 	h.deployer = d
 	h.gotify = g
@@ -57,10 +63,35 @@ type releasePayload struct {
 	Release struct {
 		TagName    string `json:"tag_name"`
 		Prerelease bool   `json:"prerelease"`
+		Name       string `json:"name"`
+		HTMLURL    string `json:"html_url"`
+		Author     struct {
+			Login string `json:"login"`
+		} `json:"author"`
 	} `json:"release"`
 	Repository struct {
 		FullName string `json:"full_name"`
 	} `json:"repository"`
+}
+
+// releaseInfo carries the fields of a published release that we surface in
+// deploy notifications.
+type releaseInfo struct {
+	Repo   string // GitHub "owner/repo"
+	Tag    string // release tag as published, e.g. "v1.2.3"
+	Name   string // release title
+	Author string // publishing user's login
+	URL    string // link to the release
+}
+
+func releaseFromPayload(p releasePayload) releaseInfo {
+	return releaseInfo{
+		Repo:   p.Repository.FullName,
+		Tag:    p.Release.TagName,
+		Name:   p.Release.Name,
+		Author: p.Release.Author.Login,
+		URL:    p.Release.HTMLURL,
+	}
 }
 
 // HandlePush dispatches push and release events. It verifies the webhook
@@ -190,30 +221,54 @@ func (h *WebhookHandler) handleRelease(c *gin.Context, body []byte) {
 	log.Printf("Webhook: release for %s (%s) — deploying image %s:%s", repoFullName, tagName, target.Image, tag)
 
 	// Acknowledge immediately, deploy async
-	go h.runDeploy(repoFullName, tagName, *target, tag)
+	go h.runDeploy(releaseFromPayload(payload), *target, tag)
 
 	c.Status(http.StatusOK)
 }
 
-func (h *WebhookHandler) runDeploy(repoFullName, releaseTag string, target deploy.Target, imageTag string) {
+func (h *WebhookHandler) runDeploy(release releaseInfo, target deploy.Target, imageTag string) {
 	ctx := context.Background()
 	err := h.deployer.PullAndUpdate(ctx, target, imageTag)
 
-	title := fmt.Sprintf("%s Release Deploy", repoFullName)
+	title := fmt.Sprintf("%s %s release deploy", release.Repo, release.Tag)
 	if err != nil {
-		log.Printf("Deploy: %s failed: %v", repoFullName, err)
+		log.Printf("Deploy: %s failed: %v", release.Repo, err)
 		if h.gotify != nil {
-			msg := fmt.Sprintf("Release %s: deploy FAILED for %s -> %s:%s\nError: %v",
-				releaseTag, target.Container, target.Image, imageTag, err)
-			h.gotify.Send(ctx, title, msg, 5)
+			h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, err), 5)
 		}
 		return
 	}
 
-	log.Printf("Deploy: %s succeeded", repoFullName)
+	log.Printf("Deploy: %s succeeded", release.Repo)
 	if h.gotify != nil {
-		msg := fmt.Sprintf("Release %s: deploy succeeded for %s -> %s:%s",
-			releaseTag, target.Container, target.Image, imageTag)
-		h.gotify.Send(ctx, title, msg, 2)
+		h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, nil), 2)
 	}
+}
+
+// deployMessage renders the Gotify notification body for a deploy. It always
+// mentions the release — title, tag, author, and link — plus the target
+// container and image, and the error when the deploy failed.
+func deployMessage(release releaseInfo, target deploy.Target, imageTag string, deployErr error) string {
+	var b strings.Builder
+
+	if release.Name != "" && release.Name != release.Tag {
+		fmt.Fprintf(&b, "Release %q (%s)\n", release.Name, release.Tag)
+	} else {
+		fmt.Fprintf(&b, "Release %s\n", release.Tag)
+	}
+	if release.Author != "" {
+		fmt.Fprintf(&b, "By: %s\n", release.Author)
+	}
+
+	if deployErr != nil {
+		fmt.Fprintf(&b, "Deploy FAILED: %s -> %s:%s\nError: %v", target.Container, target.Image, imageTag, deployErr)
+	} else {
+		fmt.Fprintf(&b, "Container %s updated to %s:%s", target.Container, target.Image, imageTag)
+	}
+
+	if release.URL != "" {
+		b.WriteString("\n")
+		b.WriteString(release.URL)
+	}
+	return b.String()
 }
