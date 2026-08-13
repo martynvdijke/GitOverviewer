@@ -26,11 +26,16 @@ type notifier interface {
 	Send(ctx context.Context, title, message string, priority int) error
 }
 
+// targetsProvider resolves the current deploy targets. It is called per
+// release event, so label-based discovery picks up newly added containers
+// without a restart.
+type targetsProvider func(ctx context.Context) ([]deploy.Target, error)
+
 type WebhookHandler struct {
 	client   *ent.Client
 	syncer   *sync.Syncer
 	secret   string
-	targets  []deploy.Target
+	targetsFn targetsProvider
 	deployer deploy.Deployer
 	gotify   notifier
 }
@@ -44,8 +49,8 @@ func NewWebhookHandler(client *ent.Client, syncer *sync.Syncer, secret string) *
 }
 
 // SetDeployer configures the deploy subsystem. Call before server starts.
-func (h *WebhookHandler) SetDeployer(targets []deploy.Target, d deploy.Deployer, g notifier) {
-	h.targets = targets
+func (h *WebhookHandler) SetDeployer(provider targetsProvider, d deploy.Deployer, g notifier) {
+	h.targetsFn = provider
 	h.deployer = d
 	h.gotify = g
 }
@@ -202,14 +207,22 @@ func (h *WebhookHandler) handleRelease(c *gin.Context, body []byte) {
 	tagName := payload.Release.TagName
 
 	// No deploy targets configured — skip
-	if h.deployer == nil || len(h.targets) == 0 {
+	if h.deployer == nil || h.targetsFn == nil {
 		log.Printf("Webhook: release for %s but no deploy targets configured", repoFullName)
 		c.Status(http.StatusOK)
 		return
 	}
 
+	// Resolve targets live so newly labeled containers deploy without a restart.
+	targets, err := h.targetsFn(c.Request.Context())
+	if err != nil {
+		log.Printf("Webhook: error resolving deploy targets: %v", err)
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
 	// Check allowlist
-	target := deploy.MatchTarget(h.targets, repoFullName)
+	target := deploy.MatchTarget(targets, repoFullName)
 	if target == nil {
 		log.Printf("Webhook: release for %s — no matching deploy target", repoFullName)
 		c.Status(http.StatusOK)

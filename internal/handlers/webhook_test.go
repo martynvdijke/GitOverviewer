@@ -217,6 +217,11 @@ func (f *fakeDeployer) waitForCall() {
 	<-f.done
 }
 
+// staticTargets returns a targetsProvider that always returns ts.
+func staticTargets(ts []deploy.Target) targetsProvider {
+	return func(context.Context) ([]deploy.Target, error) { return ts, nil }
+}
+
 // fakeNotifier captures Gotify sends for testing.
 type fakeNotifier struct {
 	sends []struct {
@@ -268,7 +273,7 @@ func TestHandleRelease_Published_MatchingTarget(t *testing.T) {
 		TagStrategy: deploy.TagStrategyReleaseTag,
 	}
 	fake := newFakeDeployer()
-	handler.SetDeployer([]deploy.Target{target}, fake, nil)
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
 
 	payload := makeReleasePayload("published", "v1.2.3", "test/repo", false)
 
@@ -301,7 +306,7 @@ func TestHandleRelease_WithSecret_ValidSignature(t *testing.T) {
 		TagStrategy: deploy.TagStrategyLatest,
 	}
 	fake := newFakeDeployer()
-	handler.SetDeployer([]deploy.Target{target}, fake, nil)
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
 
 	payload := makeReleasePayload("published", "v2.0.0", "test/repo", false)
 
@@ -353,7 +358,7 @@ func TestHandleRelease_UnmatchedRepo(t *testing.T) {
 		TagStrategy: deploy.TagStrategyReleaseTag,
 	}
 	fake := newFakeDeployer()
-	handler.SetDeployer([]deploy.Target{target}, fake, nil)
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
 
 	payload := makeReleasePayload("published", "v1.0.0", "org/gamma", false)
 
@@ -380,7 +385,7 @@ func TestHandleRelease_NonPublishedAction(t *testing.T) {
 		TagStrategy: deploy.TagStrategyReleaseTag,
 	}
 	fake := &fakeDeployer{}
-	handler.SetDeployer([]deploy.Target{target}, fake, nil)
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
 
 	payload := makeReleasePayload("created", "v1.0.0", "test/repo", false)
 
@@ -409,7 +414,7 @@ func TestHandleRelease_PrereleaseSkipped(t *testing.T) {
 		TagStrategy: deploy.TagStrategyReleaseTag,
 	}
 	fake := &fakeDeployer{}
-	handler.SetDeployer([]deploy.Target{target}, fake, nil)
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
 
 	payload := makeReleasePayload("published", "v1.0.0-rc.1", "test/repo", true)
 
@@ -430,7 +435,7 @@ func TestHandleRelease_PrereleaseSkipped(t *testing.T) {
 func TestHandleRelease_BadSignature(t *testing.T) {
 	handler := newTestWebhookHandler(t, "secret")
 	fake := &fakeDeployer{}
-	handler.SetDeployer([]deploy.Target{{Repository: "test/repo", Image: "img", Container: "c"}}, fake, nil)
+	handler.SetDeployer(staticTargets([]deploy.Target{{Repository: "test/repo", Image: "img", Container: "c"}}), fake, nil)
 
 	payload := makeReleasePayload("published", "v1.0.0", "test/repo", false)
 
@@ -460,7 +465,7 @@ func TestHandleRelease_GotifySuccessMentionsRelease(t *testing.T) {
 	}
 	fake := newFakeDeployer()
 	notif := &fakeNotifier{}
-	handler.SetDeployer([]deploy.Target{target}, fake, notif)
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, notif)
 
 	payload := makeReleasePayloadFull("published", "v1.2.3", "test/repo", false,
 		"New Charting", "octocat", "https://github.com/test/repo/releases/tag/v1.2.3")
@@ -511,7 +516,7 @@ func TestHandleRelease_GotifyFailureMentionsReleaseAndError(t *testing.T) {
 	fake := newFakeDeployer()
 	fake.err = errors.New("pull failed")
 	notif := &fakeNotifier{}
-	handler.SetDeployer([]deploy.Target{target}, fake, notif)
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, notif)
 
 	payload := makeReleasePayload("published", "v1.2.3", "test/repo", false)
 

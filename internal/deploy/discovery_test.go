@@ -550,10 +550,10 @@ func TestSplitImageTag_LongPath(t *testing.T) {
 func TestContainerToTarget_MissingLabel(t *testing.T) {
 	c := containerInspect{
 		Name: "/my-container",
-		Config: struct {
-			Image  string
-			Labels map[string]string
-		}{Image: "img:latest", Labels: map[string]string{"other": "value"}},
+		Config: containerConfig{
+			Image:  "img:latest",
+			Labels: map[string]string{"other": "value"},
+		},
 	}
 	target, err := containerToTarget(c)
 	if err != nil {
@@ -567,10 +567,10 @@ func TestContainerToTarget_MissingLabel(t *testing.T) {
 func TestContainerToTarget_EmptyRepoValue(t *testing.T) {
 	c := containerInspect{
 		Name: "/c",
-		Config: struct {
-			Image  string
-			Labels map[string]string
-		}{Image: "img:latest", Labels: map[string]string{"gitlens.deploy.target": ""}},
+		Config: containerConfig{
+			Image:  "img:latest",
+			Labels: map[string]string{"gitlens.deploy.target": ""},
+		},
 	}
 	target, err := containerToTarget(c)
 	if err != nil {

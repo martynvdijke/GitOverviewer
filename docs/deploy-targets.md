@@ -209,13 +209,32 @@ Notes:
 
 | `DEPLOY_BACKEND` | What runs | Use when |
 |---|---|---|
-| `api` (default) | `docker pull` → `stop` → `rm` → `create` → `start` | The container was started with plain `docker run` and needs no env/network/volume wiring on recreate |
-| `compose` | `docker compose pull` + `docker compose up -d --no-deps <service>` | The container is managed by docker compose — this preserves its compose-defined env, networks, and volumes |
+| `api` (default) | `docker pull` → `stop` → `rm` → `create` → `start` | Any container. Before recreating, GitLens reads the old container with `docker inspect` and **preserves its runtime config** — env, volumes, ports, networks (+aliases), labels, restart policy, hostname, working dir — so the new container is a drop-in replacement. |
+| `compose` | `docker compose pull` + `docker compose up -d --no-deps <service>` | The container is managed by docker compose. The project is **resolved automatically from the container's `com.docker.compose.*` labels** (project, working directory, service), so no path configuration is needed — the compose project directory is mounted into the helper container and compose runs from there. |
 
-> ⚠️ The `api` backend recreates the container with **no** ports, volumes, env, or
-> network from the old one — it is a bare `docker create`. If the target container
-> was started via docker compose, set `DEPLOY_BACKEND=compose` or the recreated
-> container will lose its configuration.
+> Both backends use the **helper container** (see below) when the deploy would
+> replace the very container running GitLens, or when the target is managed by
+> docker compose. The helper is a short-lived container that shares the Docker
+> socket, runs the fixed command sequence, and exits — so the deploy survives the
+> target being stopped and removed.
+
+### Deploying the GitLens container itself (self-update)
+
+GitLens can update **its own container**. Because `docker stop gitlens` would kill
+the process performing the deploy, self-updates are executed inside a detached
+**helper container** that outlives the target:
+
+1. GitLens builds the `stop → rm → create → start` sequence (config-preserving)
+   as a POSIX shell script.
+2. It launches `docker run -d --rm -v /var/run/docker.sock:/var/run/docker.sock <helper-image> sh -c '<script>'`.
+3. The helper executes the sequence; GitLens waits for it, streams its logs, and
+   cleans it up.
+
+The helper image defaults to the image the running GitLens container was created
+from (`docker inspect <self> --format '{{.Config.Image}}'`) and can be overridden
+with `DEPLOY_HELPER_IMAGE`. The official image ships the Docker CLI and compose
+plugin, so it works out of the box. There is still a brief downtime while the
+container is swapped — put GitLens behind a reverse proxy for zero downtime.
 
 ## Security notes
 
@@ -230,14 +249,6 @@ Notes:
   networks you trust and use an auth layer (it already requires a logged-in user for
   the UI).
 
-## Self-update caveat
-
-If GitLens deploys **its own container** (e.g. container name `gitlens`), the deploy
-stops and recreates the very process handling the webhook. GitLens acknowledges the
-webhook and logs the deploy before the container is replaced, but expect **brief
-downtime**. For zero-downtime updates, put GitLens behind a reverse proxy (Caddy,
-Nginx, Traefik) running in a separate container.
-
 ## Troubleshooting
 
 | Symptom | Likely cause / fix |
@@ -247,7 +258,7 @@ Nginx, Traefik) running in a separate container.
 | Labeled container not discovered | Put the label at the **service level** (`labels:`), not under `deploy.labels` (swarm-only), and **recreate the container** after editing the compose file (`docker compose up -d`). The Deploy tab's *Labeled Containers* table shows what GitLens sees. |
 | Release published, nothing happens | Webhook missing the `release` event, action isn't `published`, repo isn't in the allowlist, or the release is a prerelease (set `DEPLOY_ALLOW_PRERELEASE=true` to allow). |
 | `pull failed` | The tag doesn't exist in the registry (check CI pushed `image:tag`) or the registry needs auth (`docker login` / `gh auth login` on the host). |
-| Recreated container has no ports/env/volumes | Container is compose-managed but `DEPLOY_BACKEND=api`. Switch to `compose`. |
+| Helper container fails to start | The image resolved by `DEPLOY_HELPER_IMAGE` (or the running container's image) is missing on the host, or the Docker socket isn't mounted. Pull it first or set `DEPLOY_HELPER_IMAGE` explicitly. |
 | Webhook returns 401 | `X-Hub-Signature-256` mismatch — the secret in GitHub and `GITHUB_WEBHOOK_SECRET` differ. |
 
 Every deploy attempt is logged with a `Deploy:` prefix, and failures include the

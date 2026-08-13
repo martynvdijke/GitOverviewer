@@ -12,15 +12,6 @@ import (
 // execCommand is a mockable exec.CommandContext for testing.
 var execCommand = exec.CommandContext
 
-// containerInspect represents the subset of docker inspect output we need.
-type containerInspect struct {
-	Name   string
-	Config struct {
-		Image  string
-		Labels map[string]string
-	}
-}
-
 // DiscoverTargets inspects running Docker containers for the label
 // gitlens.deploy.target and returns corresponding deploy targets.
 // Containers are skipped if the label value is invalid or unparsable.
