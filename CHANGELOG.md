@@ -1,3 +1,10 @@
+# [1.29.0](https://github.com/martynvdijke/gitlens/compare/v1.28.0...v1.29.0) (2026-08-13)
+
+
+### Features
+
+* merge admin panel into single settings page ([f2efc59](https://github.com/martynvdijke/gitlens/commit/f2efc59345f2232e0d723aa4d79a7061204d3d3a))
+
 # [1.28.0](https://github.com/martynvdijke/gitlens/compare/v1.27.0...v1.28.0) (2026-08-13)
 
 
