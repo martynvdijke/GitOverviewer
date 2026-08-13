@@ -146,6 +146,41 @@ func (h *AdminHandler) ToggleAdmin(c *gin.Context) {
 	h.renderUserRows(c)
 }
 
+// ListSettings returns the admin configuration (OTEL + Gotify) as JSON.
+// The Gotify token is never returned; only a gotify_configured flag.
+func (h *AdminHandler) ListSettings(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	cfg, err := h.client.AdminConfig.Get(ctx, 1)
+	if err != nil && !ent.IsNotFound(err) {
+		log.Printf("admin: error loading config for API: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load settings"})
+		return
+	}
+
+	resp := gin.H{
+		"otel_endpoint":     "",
+		"traces_enabled":    false,
+		"metrics_enabled":   false,
+		"logs_enabled":      false,
+		"log_severity":      "warning",
+		"gotify_url":        "",
+		"gotify_configured": false,
+	}
+	if cfg != nil {
+		resp = gin.H{
+			"otel_endpoint":     cfg.OtelEndpoint,
+			"traces_enabled":    cfg.TracesEnabled,
+			"metrics_enabled":   cfg.MetricsEnabled,
+			"logs_enabled":      cfg.LogsEnabled,
+			"log_severity":      cfg.LogSeverity,
+			"gotify_url":        cfg.GotifyURL,
+			"gotify_configured": cfg.GotifyToken != "",
+		}
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 // UpdateGotify saves the Gotify URL/token from the admin form, reloads the
 // runtime notifier, and re-renders the form. A blank token keeps the
 // previously saved token.

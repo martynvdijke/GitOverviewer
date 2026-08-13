@@ -392,6 +392,13 @@ func main() {
 			admin.GET("/users", adminHandler.ListUsers)
 			admin.POST("/users/:id/toggle-admin", adminHandler.ToggleAdmin)
 		}
+
+		// Admin-only JSON API.
+		api := authed.Group("/api")
+		api.Use(middleware.AdminRequired(client))
+		{
+			api.GET("/settings", adminHandler.ListSettings)
+		}
 	}
 
 	r.GET("/ws", func(c *gin.Context) {

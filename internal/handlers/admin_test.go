@@ -82,6 +82,9 @@ func adminRequest(h *AdminHandler, userID int64, method, path, body string) *htt
 	case method == "POST" && path == "/admin/gotify":
 		handlerFn = h.UpdateGotify
 		routeMethod, routePath = "POST", "/admin/gotify"
+	case method == "GET" && path == "/api/settings":
+		handlerFn = h.ListSettings
+		routeMethod, routePath = "GET", "/api/settings"
 	case method == "GET" && path == "/admin/users":
 		handlerFn = h.ListUsers
 		routeMethod, routePath = "GET", "/admin/users"
@@ -378,6 +381,97 @@ func TestAdminHandler_UpdateGotify_ReloadInvoked(t *testing.T) {
 	}
 	if !reloaded {
 		t.Fatal("expected gotifyReload callback to be invoked after save")
+	}
+}
+
+func TestAdminHandler_ListSettings_Success(t *testing.T) {
+	h, client := newTestAdminHandler(t)
+	adminID := createAdminUser(t, client)
+
+	_, err := client.AdminConfig.Create().
+		SetID(1).
+		SetOtelEndpoint("collector:4318").
+		SetTracesEnabled(true).
+		SetMetricsEnabled(false).
+		SetLogsEnabled(true).
+		SetLogSeverity("debug").
+		SetGotifyURL("https://gotify.example.com").
+		SetGotifyToken("secret123").
+		Save(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := adminRequest(h, int64(adminID), "GET", "/api/settings", "")
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	for _, want := range []string{
+		`"otel_endpoint":"collector:4318"`,
+		`"traces_enabled":true`,
+		`"metrics_enabled":false`,
+		`"logs_enabled":true`,
+		`"log_severity":"debug"`,
+		`"gotify_url":"https://gotify.example.com"`,
+		`"gotify_configured":true`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected %s in body, got: %s", want, body)
+		}
+	}
+	if strings.Contains(body, "secret123") || strings.Contains(body, "gotify_token") {
+		t.Fatalf("settings API must not expose the gotify token, got: %s", body)
+	}
+}
+
+func TestAdminHandler_ListSettings_NoConfig(t *testing.T) {
+	h, client := newTestAdminHandler(t)
+	adminID := createAdminUser(t, client)
+
+	w := adminRequest(h, int64(adminID), "GET", "/api/settings", "")
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	for _, want := range []string{
+		`"otel_endpoint":""`,
+		`"traces_enabled":false`,
+		`"log_severity":"warning"`,
+		`"gotify_configured":false`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("expected %s in body, got: %s", want, body)
+		}
+	}
+}
+
+func TestAdminHandler_ListSettings_TokenNotConfigured(t *testing.T) {
+	h, client := newTestAdminHandler(t)
+	adminID := createAdminUser(t, client)
+
+	// Config exists but no gotify token saved yet.
+	_, err := client.AdminConfig.Create().
+		SetID(1).
+		SetGotifyURL("https://gotify.example.com").
+		Save(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w := adminRequest(h, int64(adminID), "GET", "/api/settings", "")
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, `"gotify_url":"https://gotify.example.com"`) {
+		t.Fatalf("expected gotify_url in body, got: %s", body)
+	}
+	if !strings.Contains(body, `"gotify_configured":false`) {
+		t.Fatalf("expected gotify_configured:false, got: %s", body)
 	}
 }
 
