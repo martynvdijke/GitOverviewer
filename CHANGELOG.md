@@ -1,3 +1,15 @@
+# [1.27.0](https://github.com/martynvdijke/gitlens/compare/v1.26.0...v1.27.0) (2026-08-13)
+
+
+### Bug Fixes
+
+* restore deploy target loading in main to match committed webhook api ([f70695c](https://github.com/martynvdijke/gitlens/commit/f70695c8bd07fb2293558f39f6bacc4ece656835))
+
+
+### Features
+
+* auto-register github webhooks on app install ([d30e9a9](https://github.com/martynvdijke/gitlens/commit/d30e9a9cd89bba4fcbbf34eb81d9a343f33a8bde))
+
 # [1.26.0](https://github.com/martynvdijke/gitlens/compare/v1.25.0...v1.26.0) (2026-08-13)
 
 
