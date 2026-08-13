@@ -1,3 +1,10 @@
+# [1.26.0](https://github.com/martynvdijke/gitlens/compare/v1.25.0...v1.26.0) (2026-08-13)
+
+
+### Features
+
+* add admin API endpoint for listing settings ([3a6fda3](https://github.com/martynvdijke/gitlens/commit/3a6fda36a731af921d4e59d0e0b4df2607bed638))
+
 # [1.25.0](https://github.com/martynvdijke/gitlens/compare/v1.24.0...v1.25.0) (2026-08-12)
 
 
