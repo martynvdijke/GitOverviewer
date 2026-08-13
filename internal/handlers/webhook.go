@@ -32,12 +32,12 @@ type notifier interface {
 type targetsProvider func(ctx context.Context) ([]deploy.Target, error)
 
 type WebhookHandler struct {
-	client   *ent.Client
-	syncer   *sync.Syncer
-	secret   string
+	client    *ent.Client
+	syncer    *sync.Syncer
+	secret    string
 	targetsFn targetsProvider
-	deployer deploy.Deployer
-	gotify   notifier
+	deployer  deploy.Deployer
+	gotify    notifier
 }
 
 func NewWebhookHandler(client *ent.Client, syncer *sync.Syncer, secret string) *WebhookHandler {

@@ -80,7 +80,7 @@ func deathstarInspect(id string) containerInspect {
 				"DB_PATH=/db/datey.db",
 			},
 			Labels: map[string]string{
-				"gitlens.deploy.target":     "martynvdijke/datey",
+				"gitlens.deploy.target":      "martynvdijke/datey",
 				"com.docker.compose.service": "datey",
 			},
 			ExposedPorts: map[string]struct{}{"6270/tcp": {}},
@@ -111,12 +111,12 @@ func deathstarInspect(id string) containerInspect {
 
 func TestShQuote(t *testing.T) {
 	cases := map[string]string{
-		"simple":            "'simple'",
-		"with space":        "'with space'",
-		"it's":              `'it'\''s'`,
-		"$(touch /tmp/x)":   "'$(touch /tmp/x)'",
-		"back`tick":         "'back`tick'",
-		"semi;colon|pipe&":  "'semi;colon|pipe&'",
+		"simple":           "'simple'",
+		"with space":       "'with space'",
+		"it's":             `'it'\''s'`,
+		"$(touch /tmp/x)":  "'$(touch /tmp/x)'",
+		"back`tick":        "'back`tick'",
+		"semi;colon|pipe&": "'semi;colon|pipe&'",
 	}
 	for in, want := range cases {
 		if got := shQuote(in); got != want {
