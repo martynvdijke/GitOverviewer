@@ -285,11 +285,7 @@ func main() {
 		log.Printf("Deploy: error loading targets: %v (deploy disabled)", err)
 	} else if len(targets) > 0 {
 		d := deploy.NewDeployer()
-		// Resolve targets per release event so label-based discovery picks up
-		// newly added containers without a restart.
-		webhookHandler.SetDeployer(func(context.Context) ([]deploy.Target, error) {
-			return deploy.LoadAllTargets()
-		}, d, nil)
+		webhookHandler.SetDeployer(targets, d, nil)
 		gitHubAppHandler.SetDeployEnabled(true)
 		log.Printf("Deploy: %d target(s) configured, backend=%s", len(targets), deploy.DeployBackend())
 	}
