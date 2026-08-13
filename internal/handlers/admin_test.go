@@ -56,7 +56,6 @@ func createRegularUser(t *testing.T, client *ent.Client) int {
 var adminTestTmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"printf": fmt.Sprintf,
 }).Parse(`
-{{define "admin_panel"}}<div>admin_panel {{template "admin_otel_form" .}} {{template "admin_gotify_form" .}} users={{len .Users}} user_id={{.UserID}}</div>{{end}}
 {{define "admin_otel_form"}}<div>otel_form endpoint={{if .Config}}{{.Config.OtelEndpoint}}{{end}}</div>{{end}}
 {{define "admin_gotify_form"}}<div>gotify_form url={{if .Config}}{{.Config.GotifyURL}}{{end}}</div>{{end}}
 {{define "admin_users_tab"}}<div>users_tab {{range .Users}}user={{.Login}}:admin={{.IsAdmin}} {{end}}current={{.UserID}}</div>{{end}}
@@ -73,9 +72,6 @@ func adminRequest(h *AdminHandler, userID int64, method, path, body string) *htt
 	var routePath string
 
 	switch {
-	case method == "GET" && path == "/admin":
-		handlerFn = h.Index
-		routeMethod, routePath = "GET", "/admin"
 	case method == "POST" && path == "/admin/otel":
 		handlerFn = h.UpdateOTEL
 		routeMethod, routePath = "POST", "/admin/otel"
@@ -111,43 +107,6 @@ func adminRequest(h *AdminHandler, userID int64, method, path, body string) *htt
 	}
 	engine.ServeHTTP(w, req)
 	return w
-}
-
-func TestAdminHandler_Index(t *testing.T) {
-	h, client := newTestAdminHandler(t)
-	adminID := createAdminUser(t, client)
-
-	// Create a second user to verify user count in response
-	createRegularUser(t, client)
-
-	w := adminRequest(h, int64(adminID), "GET", "/admin", "")
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d, body: %s", w.Code, w.Body.String())
-	}
-	body := w.Body.String()
-	if !strings.Contains(body, "admin_panel") {
-		t.Fatal("expected admin_panel in response")
-	}
-	if !strings.Contains(body, "otel_form") {
-		t.Fatal("expected otel_form in response")
-	}
-	if !strings.Contains(body, "users=2") {
-		t.Fatal("expected users=2 in response, got:", body)
-	}
-}
-
-func TestAdminHandler_Index_NoConfig(t *testing.T) {
-	h, client := newTestAdminHandler(t)
-	adminID := createAdminUser(t, client)
-
-	w := adminRequest(h, int64(adminID), "GET", "/admin", "")
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-	// Should render without error even without AdminConfig
-	if !strings.Contains(w.Body.String(), "admin_panel") {
-		t.Fatal("expected admin_panel template to render")
-	}
 }
 
 func TestAdminHandler_UpdateOTEL_Create(t *testing.T) {

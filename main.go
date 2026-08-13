@@ -391,7 +391,11 @@ func main() {
 		admin := authed.Group("/admin")
 		admin.Use(middleware.AdminRequired(client))
 		{
-			admin.GET("", adminHandler.Index)
+			// Settings and admin panels were merged into /settings; keep
+			// /admin as a redirect so old links/bookmarks still work.
+			admin.GET("", func(c *gin.Context) {
+				c.Redirect(http.StatusFound, "/settings")
+			})
 			admin.POST("/otel", adminHandler.UpdateOTEL)
 			admin.POST("/gotify", adminHandler.UpdateGotify)
 			admin.GET("/users", adminHandler.ListUsers)

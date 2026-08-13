@@ -30,25 +30,6 @@ func (h *AdminHandler) SetGotifyReload(fn func()) {
 	h.gotifyReload = fn
 }
 
-// Index renders the admin panel page with the OTEL config form and user list.
-func (h *AdminHandler) Index(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	cfg, err := h.client.AdminConfig.Get(ctx, 1)
-	if err != nil && !ent.IsNotFound(err) {
-		log.Printf("admin: error loading config: %v", err)
-	}
-
-	users, _ := h.client.User.Query().All(ctx)
-	userID := c.GetInt64("user_id")
-
-	c.HTML(http.StatusOK, "admin_panel", gin.H{
-		"Config": cfg,
-		"Users":  users,
-		"UserID": userID,
-	})
-}
-
 // UpdateOTEL parses the OTEL settings form, saves to DB, and reloads providers.
 func (h *AdminHandler) UpdateOTEL(c *gin.Context) {
 	ctx := c.Request.Context()

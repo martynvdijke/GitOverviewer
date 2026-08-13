@@ -55,12 +55,27 @@ func (h *SettingsHandler) Index(c *gin.Context) {
 
 	forgejoWarning := h.computeForgejoWarning(c.Request.Context(), u, repos)
 
-	c.HTML(http.StatusOK, "settings", gin.H{
+	data := gin.H{
 		"User":           u,
 		"Repos":          repos,
 		"WebhookURL":     webhookURL,
 		"ForgejoWarning": forgejoWarning,
-	})
+	}
+
+	// Admins also see the instance-wide settings (OTEL, Gotify, Users) on
+	// this page, so load the admin config and user list for them.
+	if u.IsAdmin {
+		cfg, err := h.client.AdminConfig.Get(c.Request.Context(), 1)
+		if err != nil && !ent.IsNotFound(err) {
+			log.Printf("settings: error loading admin config: %v", err)
+		}
+		users, _ := h.client.User.Query().All(c.Request.Context())
+		data["Config"] = cfg
+		data["Users"] = users
+		data["UserID"] = userID
+	}
+
+	c.HTML(http.StatusOK, "settings", data)
 }
 
 func (h *SettingsHandler) UpdateInterval(c *gin.Context) {
