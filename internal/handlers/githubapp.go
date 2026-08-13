@@ -21,12 +21,22 @@ import (
 )
 
 type GitHubAppHandler struct {
-	client *ent.Client
+	client        *ent.Client
+	deployEnabled bool
 }
 
 func NewGitHubAppHandler(client *ent.Client) *GitHubAppHandler {
 	return &GitHubAppHandler{client: client}
 }
+
+// SetDeployEnabled configures whether registered webhooks include the release
+// event (used by the deploy subsystem). Call before the server starts.
+func (h *GitHubAppHandler) SetDeployEnabled(enabled bool) {
+	h.deployEnabled = enabled
+}
+
+// githubAPIBase is the GitHub REST API base URL. Overridable in tests.
+var githubAPIBase = "https://api.github.com"
 
 type ghAppInstallation struct {
 	Action       string `json:"action"`
@@ -110,6 +120,10 @@ func (h *GitHubAppHandler) handleInstallCreated(c *gin.Context, payload *ghAppIn
 	}
 
 	imported := 0
+	configured := 0
+	webhookErrors := 0
+	hookURL := buildHookURL(c)
+	events := h.webhookEvents()
 	for _, r := range repos {
 		exists, _ := h.client.Repository.Query().
 			Where(
@@ -135,9 +149,18 @@ func (h *GitHubAppHandler) handleInstallCreated(c *gin.Context, payload *ghAppIn
 			continue
 		}
 		imported++
+
+		// Auto-register the webhook for newly imported repos. Failures are
+		// logged and never abort the import.
+		if err := h.ensureWebhook(u.AccessToken, r.Owner.Login, r.Name, events, hookURL); err != nil {
+			log.Printf("Error registering webhook for %s: %v", r.FullName, err)
+			webhookErrors++
+			continue
+		}
+		configured++
 	}
 
-	log.Printf("GitHub App installation: imported %d repos for user %s", imported, accountLogin)
+	log.Printf("GitHub App installation: imported %d repos for user %s (webhooks configured: %d, errors: %d)", imported, accountLogin, configured, webhookErrors)
 	c.String(http.StatusOK, "Installation processed")
 }
 
@@ -196,18 +219,14 @@ func (h *GitHubAppHandler) SetupAutoWebhooks(c *gin.Context) {
 		return
 	}
 
-	hookURL := c.Request.Host + "/webhook/github"
-	scheme := "http"
-	if c.Request.TLS != nil {
-		scheme = "https"
-	}
-	fullHookURL := scheme + "://" + hookURL
+	hookURL := buildHookURL(c)
+	events := h.webhookEvents()
 
 	configured := 0
 	errors := 0
 
 	for _, r := range repos {
-		err := h.registerWebhook(u.AccessToken, r.Owner, r.Name, fullHookURL)
+		err := h.ensureWebhook(u.AccessToken, r.Owner, r.Name, events, hookURL)
 		if err != nil {
 			log.Printf("Error registering webhook for %s: %v", r.FullName, err)
 			errors++
@@ -216,12 +235,27 @@ func (h *GitHubAppHandler) SetupAutoWebhooks(c *gin.Context) {
 		configured++
 	}
 
-	msg := fmt.Sprintf("Webhooks configured: %d, errors: %d", configured, errors)
-	if errors > 0 {
-		c.String(http.StatusOK, msg)
-	} else {
-		c.String(http.StatusOK, msg)
+	c.String(http.StatusOK, fmt.Sprintf("Webhooks configured: %d, errors: %d", configured, errors))
+}
+
+// buildHookURL computes the externally reachable /webhook/github URL from the
+// incoming request. Shared by automatic and manual webhook registration.
+func buildHookURL(c *gin.Context) string {
+	scheme := "http"
+	if c.Request.TLS != nil {
+		scheme = "https"
 	}
+	return scheme + "://" + c.Request.Host + "/webhook/github"
+}
+
+// webhookEvents returns the GitHub events this instance subscribes to. The
+// release event is added when the deploy subsystem is enabled.
+func (h *GitHubAppHandler) webhookEvents() []string {
+	events := []string{"push"}
+	if h.deployEnabled {
+		events = append(events, "release")
+	}
+	return events
 }
 
 type createHookRequest struct {
@@ -236,11 +270,31 @@ type createHookRequest struct {
 	} `json:"config"`
 }
 
-func (h *GitHubAppHandler) registerWebhook(token, owner, repo, hookURL string) error {
+// listHooksResponse mirrors the subset of the GitHub hooks list API response
+// needed to detect an existing webhook for this instance.
+type listHooksResponse []struct {
+	Config struct {
+		URL string `json:"url"`
+	} `json:"config"`
+}
+
+// ensureWebhook registers a webhook for a repo unless one pointing at hookURL
+// already exists. Idempotent: re-runs do not create duplicate hooks.
+func (h *GitHubAppHandler) ensureWebhook(token, owner, repo string, events []string, hookURL string) error {
+	existing, err := h.listWebhooks(token, owner, repo)
+	if err != nil {
+		return err
+	}
+	for _, hook := range existing {
+		if hook.Config.URL == hookURL {
+			return nil // already registered
+		}
+	}
+
 	payload := createHookRequest{
 		Name:   "web",
 		Active: true,
-		Events: []string{"push"},
+		Events: events,
 	}
 	payload.Config.URL = hookURL
 	payload.Config.ContentType = "json"
@@ -252,7 +306,7 @@ func (h *GitHubAppHandler) registerWebhook(token, owner, repo, hookURL string) e
 		return fmt.Errorf("encoding hook payload: %w", err)
 	}
 
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/hooks", owner, repo)
+	url := fmt.Sprintf("%s/repos/%s/%s/hooks", githubAPIBase, owner, repo)
 	req, err := http.NewRequest("POST", url, &buf)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
@@ -274,4 +328,32 @@ func (h *GitHubAppHandler) registerWebhook(token, owner, repo, hookURL string) e
 	}
 
 	return nil
+}
+
+func (h *GitHubAppHandler) listWebhooks(token, owner, repo string) (listHooksResponse, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/hooks", githubAPIBase, owner, repo)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("sending request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("GitHub API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var hooks listHooksResponse
+	if err := json.NewDecoder(resp.Body).Decode(&hooks); err != nil {
+		return nil, fmt.Errorf("decoding hooks response: %w", err)
+	}
+	return hooks, nil
 }
