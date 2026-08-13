@@ -1,3 +1,10 @@
+# [1.28.0](https://github.com/martynvdijke/gitlens/compare/v1.27.0...v1.28.0) (2026-08-13)
+
+
+### Features
+
+* resolve deploy targets dynamically per release event ([e9759c0](https://github.com/martynvdijke/gitlens/commit/e9759c02d4818667107c2a48dc153882597717ac))
+
 # [1.27.0](https://github.com/martynvdijke/gitlens/compare/v1.26.0...v1.27.0) (2026-08-13)
 
 
