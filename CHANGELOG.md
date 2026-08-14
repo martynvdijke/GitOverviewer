@@ -1,3 +1,10 @@
+## [1.29.1](https://github.com/martynvdijke/gitlens/compare/v1.29.0...v1.29.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* promote all existing users to admin at startup ([4f41840](https://github.com/martynvdijke/gitlens/commit/4f418400256d37ac6534bcbb98361324edc6529b))
+
 # [1.29.0](https://github.com/martynvdijke/gitlens/compare/v1.28.0...v1.29.0) (2026-08-13)
 
 
