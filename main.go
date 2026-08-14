@@ -67,6 +67,16 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
+	// Promote all existing users to admin. The first-user-auto-admin logic in
+	// the auth handlers only fires at registration, so users created before
+	// that (or by earlier releases) would never see the admin sections.
+	// This app is single-admin by design, so everyone is an admin.
+	if n, err := client.User.Update().SetIsAdmin(true).Save(context.Background()); err != nil {
+		log.Fatalf("Failed to promote users to admin: %v", err)
+	} else if n > 0 {
+		log.Printf("Promoted %d user(s) to admin", n)
+	}
+
 	sessionStore := middleware.NewSessionStore(db)
 
 	otelManager := otel.NewManager(client)
