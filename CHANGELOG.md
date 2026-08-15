@@ -1,3 +1,12 @@
+# [1.30.0](https://github.com/martynvdijke/gitlens/compare/v1.29.3...v1.30.0) (2026-08-15)
+
+
+### Features
+
+* deploy containers on ghcr image publish via registry_package webhook ([421ee5c](https://github.com/martynvdijke/gitlens/commit/421ee5c1a6aa2da13cf01fedb45766f735974ce7))
+* link labeled containers to uptime kuma, npm and authelia ([c23551e](https://github.com/martynvdijke/gitlens/commit/c23551e959dd1391509fe33d723b0c1a8f5216a0))
+* report deploy steps in gotify notification ([6a73368](https://github.com/martynvdijke/gitlens/commit/6a73368a2e13eb8ffe516d7bcd8f88c524641ad1))
+
 ## [1.29.3](https://github.com/martynvdijke/gitlens/compare/v1.29.2...v1.29.3) (2026-08-15)
 
 
