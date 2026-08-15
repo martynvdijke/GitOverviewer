@@ -1,3 +1,10 @@
+## [1.31.3](https://github.com/martynvdijke/gitlens/compare/v1.31.2...v1.31.3) (2026-08-15)
+
+
+### Bug Fixes
+
+* **trmnl:** pin plugin id 443884 ([59cbfca](https://github.com/martynvdijke/gitlens/commit/59cbfca8fb5a4c7ee7b0e5a46191775af8d36297))
+
 ## [1.31.2](https://github.com/martynvdijke/gitlens/compare/v1.31.1...v1.31.2) (2026-08-15)
 
 

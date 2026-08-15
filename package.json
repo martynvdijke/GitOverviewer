@@ -1,6 +1,6 @@
 {
   "name": "gitlens",
-  "version": "1.31.2",
+  "version": "1.31.3",
   "description": "A Go-based web application for monitoring and visualizing Git repository activity across multiple repositories.",
   "main": "index.js",
   "scripts": {
