@@ -1,3 +1,10 @@
+# [1.31.0](https://github.com/martynvdijke/gitlens/compare/v1.30.0...v1.31.0) (2026-08-15)
+
+
+### Features
+
+* add TRMNL e-ink plugin and CI pipeline ([bc5717b](https://github.com/martynvdijke/gitlens/commit/bc5717b2b9b2418423dffabf6b65cf919ba8cb16))
+
 # [1.30.0](https://github.com/martynvdijke/gitlens/compare/v1.29.3...v1.30.0) (2026-08-15)
 
 
