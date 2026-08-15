@@ -93,6 +93,7 @@ type releaseInfo struct {
 	Name   string // release title
 	Author string // publishing user's login
 	URL    string // link to the release
+	Kind   string // "" for releases, "package" for container image publishes
 }
 
 func releaseFromPayload(p releasePayload) releaseInfo {
@@ -103,6 +104,40 @@ func releaseFromPayload(p releasePayload) releaseInfo {
 		Author: p.Release.Author.Login,
 		URL:    p.Release.HTMLURL,
 	}
+}
+
+// packagePayload is the registry_package/package webhook event, fired when a
+// package is published (e.g. a container image pushed to GHCR). The payload
+// shape is identical for both event names, so either key is accepted.
+type packagePayload struct {
+	Action string `json:"action"`
+	// RegistryPackage and Package are aliases of the same payload shape.
+	RegistryPackage *packageInfo `json:"registry_package"`
+	Package         *packageInfo `json:"package"`
+	Repository      struct {
+		FullName string `json:"full_name"`
+	} `json:"repository"`
+}
+
+// packageInfo is the package object common to both event names. For container
+// images, package_version.version is a sha256 digest, so the pushed tag must
+// come from package_version.container_metadata.tag.name instead.
+type packageInfo struct {
+	Name        string `json:"name"`
+	PackageType string `json:"package_type"`
+	Owner       struct {
+		Login string `json:"login"`
+	} `json:"owner"`
+	HTMLURL        string `json:"html_url"`
+	PackageVersion struct {
+		Version           string `json:"version"`
+		HTMLURL           string `json:"html_url"`
+		ContainerMetadata struct {
+			Tag struct {
+				Name string `json:"name"`
+			} `json:"tag"`
+		} `json:"container_metadata"`
+	} `json:"package_version"`
 }
 
 // HandlePush dispatches push and release events. It verifies the webhook
@@ -125,6 +160,8 @@ func (h *WebhookHandler) HandlePush(c *gin.Context) {
 	switch event {
 	case "release":
 		h.handleRelease(c, body)
+	case "registry_package", "package":
+		h.handlePackage(c, body)
 	default:
 		// Legacy behavior: treat as push event (or unknown)
 		h.handlePushEvent(c, body)
@@ -245,11 +282,123 @@ func (h *WebhookHandler) handleRelease(c *gin.Context, body []byte) {
 	c.Status(http.StatusOK)
 }
 
+// handlePackage deploys when a container image is published. Unlike release
+// events, this fires only after the image has actually landed in the registry,
+// so the deploy always pulls the freshly published image. It is the fix for
+// workflows that publish the GitHub release before pushing the image.
+func (h *WebhookHandler) handlePackage(c *gin.Context, body []byte) {
+	var payload packagePayload
+	if err := json.Unmarshal(body, &payload); err != nil {
+		log.Printf("Webhook: error parsing package payload: %v", err)
+		c.Status(http.StatusBadRequest)
+		return
+	}
+
+	// Only act on published packages
+	if payload.Action != "published" {
+		log.Printf("Webhook: package action=%s — ignoring", payload.Action)
+		c.Status(http.StatusOK)
+		return
+	}
+
+	pkg := payload.RegistryPackage
+	if pkg == nil {
+		pkg = payload.Package
+	}
+	if pkg == nil || !strings.EqualFold(pkg.PackageType, "container") {
+		log.Printf("Webhook: package is not a container image — ignoring")
+		c.Status(http.StatusOK)
+		return
+	}
+
+	// For container images the pushed tag lives in container_metadata; the
+	// version field is a sha256 digest, which is useless as an image tag.
+	tagName := pkg.PackageVersion.ContainerMetadata.Tag.Name
+	if tagName == "" {
+		tagName = pkg.PackageVersion.Version
+	}
+	if tagName == "" || strings.HasPrefix(strings.ToLower(tagName), "sha256:") {
+		log.Printf("Webhook: package for %s has no usable tag — ignoring", pkg.Name)
+		c.Status(http.StatusOK)
+		return
+	}
+
+	// Prefer the source repository, fall back to owner/name for packages that
+	// are not linked to a repository.
+	repoFullName := payload.Repository.FullName
+	if repoFullName == "" {
+		if pkg.Owner.Login == "" || pkg.Name == "" {
+			log.Printf("Webhook: package has no repository or owner/name — ignoring")
+			c.Status(http.StatusOK)
+			return
+		}
+		repoFullName = pkg.Owner.Login + "/" + pkg.Name
+	}
+
+	// No deploy targets configured — skip
+	if h.deployer == nil || h.targetsFn == nil {
+		log.Printf("Webhook: package for %s but no deploy targets configured", repoFullName)
+		c.Status(http.StatusOK)
+		return
+	}
+
+	targets, err := h.targetsFn(c.Request.Context())
+	if err != nil {
+		log.Printf("Webhook: error resolving deploy targets: %v", err)
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	target := deploy.MatchTarget(targets, repoFullName)
+	if target == nil {
+		log.Printf("Webhook: package for %s — no matching deploy target", repoFullName)
+		c.Status(http.StatusOK)
+		return
+	}
+
+	// Publishing an image with several tags fires one event per tag. Only
+	// react to the tag the target's strategy deploys, so a single push does
+	// not trigger duplicate deploys of the same image.
+	if target.TagStrategy == deploy.TagStrategyLatest && tagName != "latest" {
+		log.Printf("Webhook: package for %s (tag %s) — skipping, latest strategy", repoFullName, tagName)
+		c.Status(http.StatusOK)
+		return
+	}
+	if target.TagStrategy == deploy.TagStrategyReleaseTag && tagName == "latest" {
+		log.Printf("Webhook: package for %s (tag latest) — skipping, release tag strategy", repoFullName)
+		c.Status(http.StatusOK)
+		return
+	}
+
+	tag := deploy.NormalizeTag(tagName, target.TagStrategy)
+	log.Printf("Webhook: package for %s (%s) — deploying image %s:%s", repoFullName, tagName, target.Image, tag)
+
+	info := releaseInfo{
+		Repo: repoFullName,
+		Tag:  tagName,
+		Kind: "package",
+	}
+	if pkg.PackageVersion.HTMLURL != "" {
+		info.URL = pkg.PackageVersion.HTMLURL
+	} else if pkg.HTMLURL != "" {
+		info.URL = pkg.HTMLURL
+	}
+
+	// Acknowledge immediately, deploy async
+	go h.runDeploy(info, *target, tag)
+
+	c.Status(http.StatusOK)
+}
+
 func (h *WebhookHandler) runDeploy(release releaseInfo, target deploy.Target, imageTag string) {
 	ctx := context.Background()
 	result, err := h.deployer.PullAndUpdate(ctx, target, imageTag)
 
-	title := fmt.Sprintf("%s %s release deploy", release.Repo, release.Tag)
+	subject := "release deploy"
+	if release.Kind == "package" {
+		subject = "image deploy"
+	}
+	title := fmt.Sprintf("%s %s %s", release.Repo, release.Tag, subject)
 	if err != nil {
 		log.Printf("Deploy: %s failed: %v", release.Repo, err)
 		if h.gotify != nil {
@@ -271,7 +420,9 @@ func (h *WebhookHandler) runDeploy(release releaseInfo, target deploy.Target, im
 func deployMessage(release releaseInfo, target deploy.Target, imageTag string, result *deploy.DeployResult, deployErr error) string {
 	var b strings.Builder
 
-	if release.Name != "" && release.Name != release.Tag {
+	if release.Kind == "package" {
+		fmt.Fprintf(&b, "Image %s published\n", release.Tag)
+	} else if release.Name != "" && release.Name != release.Tag {
 		fmt.Fprintf(&b, "Release %q (%s)\n", release.Name, release.Tag)
 	} else {
 		fmt.Fprintf(&b, "Release %s\n", release.Tag)

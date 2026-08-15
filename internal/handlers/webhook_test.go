@@ -517,6 +517,358 @@ func TestHandleRelease_GotifySuccessMentionsRelease(t *testing.T) {
 	}
 }
 
+// makeRegistryPackagePayload builds a registry_package webhook payload.
+// An empty repo omits the top-level repository object.
+func makeRegistryPackagePayload(action, tag, name, owner, repo, pkgType string) string {
+	reg := map[string]interface{}{
+		"name":         name,
+		"package_type": pkgType,
+		"owner":        map[string]interface{}{"login": owner},
+		"html_url":     "https://github.com/" + owner + "/" + name + "/pkgs/container/" + name,
+		"package_version": map[string]interface{}{
+			// Real GHCR payloads carry a sha256 digest here; the pushed tag
+			// lives in container_metadata.tag.name.
+			"version":  "sha256:3da1996a8115d7616457760d9920b815241d0a03b34cf5f04e9a0e9d8de37498",
+			"html_url": "https://github.com/" + owner + "/" + name + "/pkgs/container/" + name + "/1234",
+			"container_metadata": map[string]interface{}{
+				"tag": map[string]interface{}{"name": tag},
+			},
+		},
+	}
+	payload := map[string]interface{}{
+		"action":           action,
+		"registry_package": reg,
+	}
+	if repo != "" {
+		payload["repository"] = map[string]interface{}{"full_name": repo}
+	}
+	p, _ := json.Marshal(payload)
+	return string(p)
+}
+
+// ---- Registry package event tests ----
+
+func TestHandlePackage_Published_MatchingTarget(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "ghcr.io/test/repo",
+		Container:   "test-app",
+		TagStrategy: deploy.TagStrategyReleaseTag,
+	}
+	fake := newFakeDeployer()
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := makeRegistryPackagePayload("published", "v1.2.3", "repo", "test", "test/repo", "container")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	fake.waitForCall()
+	if len(fake.calls) != 1 {
+		t.Fatalf("expected 1 deploy call, got %d", len(fake.calls))
+	}
+	if fake.calls[0].Tag != "1.2.3" {
+		t.Fatalf("expected tag 1.2.3, got %s", fake.calls[0].Tag)
+	}
+}
+
+func TestHandlePackage_EventNamePackage(t *testing.T) {
+	// GitHub Apps deliver the same payload under the "package" event name and
+	// the "package" key.
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "img",
+		Container:   "c",
+		TagStrategy: deploy.TagStrategyLatest,
+	}
+	fake := newFakeDeployer()
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := `{"action":"published","package":{"name":"repo","package_type":"container","owner":{"login":"test"},"package_version":{"version":"sha256:abc","container_metadata":{"tag":{"name":"latest"}}}},"repository":{"full_name":"test/repo"}}`
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	fake.waitForCall()
+	if len(fake.calls) != 1 {
+		t.Fatalf("expected 1 deploy call, got %d", len(fake.calls))
+	}
+}
+
+func TestHandlePackage_LatestStrategy_DeploysLatestTag(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "img",
+		Container:   "c",
+		TagStrategy: deploy.TagStrategyLatest,
+	}
+	fake := newFakeDeployer()
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := makeRegistryPackagePayload("published", "latest", "repo", "test", "test/repo", "container")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	fake.waitForCall()
+	if len(fake.calls) != 1 {
+		t.Fatalf("expected 1 deploy call, got %d", len(fake.calls))
+	}
+	if fake.calls[0].Tag != "latest" {
+		t.Fatalf("expected tag latest, got %s", fake.calls[0].Tag)
+	}
+}
+
+func TestHandlePackage_LatestStrategy_SkipsVersionedTag(t *testing.T) {
+	// A single image push with several tags fires one event per tag; only the
+	// "latest" tag event should deploy for the latest strategy.
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "img",
+		Container:   "c",
+		TagStrategy: deploy.TagStrategyLatest,
+	}
+	fake := &fakeDeployer{}
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := makeRegistryPackagePayload("published", "v1.2.3", "repo", "test", "test/repo", "container")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if len(fake.calls) != 0 {
+		t.Fatalf("expected 0 deploy calls, got %d", len(fake.calls))
+	}
+}
+
+func TestHandlePackage_ReleaseTagStrategy_SkipsLatest(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "img",
+		Container:   "c",
+		TagStrategy: deploy.TagStrategyReleaseTag,
+	}
+	fake := &fakeDeployer{}
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := makeRegistryPackagePayload("published", "latest", "repo", "test", "test/repo", "container")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if len(fake.calls) != 0 {
+		t.Fatalf("expected 0 deploy calls, got %d", len(fake.calls))
+	}
+}
+
+func TestHandlePackage_NonContainerType(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{Repository: "test/repo", Image: "img", Container: "c"}
+	fake := &fakeDeployer{}
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := makeRegistryPackagePayload("published", "v1.0.0", "repo", "test", "test/repo", "npm")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if len(fake.calls) != 0 {
+		t.Fatalf("expected 0 deploy calls for non-container package, got %d", len(fake.calls))
+	}
+}
+
+func TestHandlePackage_NonPublishedAction(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{Repository: "test/repo", Image: "img", Container: "c"}
+	fake := &fakeDeployer{}
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := makeRegistryPackagePayload("updated", "v1.0.0", "repo", "test", "test/repo", "container")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if len(fake.calls) != 0 {
+		t.Fatalf("expected 0 deploy calls for non-published action, got %d", len(fake.calls))
+	}
+}
+
+func TestHandlePackage_UnmatchedRepo(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{Repository: "org/alpha", Image: "img", Container: "c"}
+	fake := &fakeDeployer{}
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := makeRegistryPackagePayload("published", "v1.0.0", "beta", "org", "org/beta", "container")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if len(fake.calls) != 0 {
+		t.Fatalf("expected 0 deploy calls, got %d", len(fake.calls))
+	}
+}
+
+func TestHandlePackage_FallsBackToOwnerName(t *testing.T) {
+	// Payloads without the top-level repository object match via owner/name.
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "img",
+		Container:   "c",
+		TagStrategy: deploy.TagStrategyReleaseTag,
+	}
+	fake := newFakeDeployer()
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := makeRegistryPackagePayload("published", "v1.2.3", "repo", "test", "", "container")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	fake.waitForCall()
+	if len(fake.calls) != 1 {
+		t.Fatalf("expected 1 deploy call, got %d", len(fake.calls))
+	}
+	if fake.calls[0].Tag != "1.2.3" {
+		t.Fatalf("expected tag 1.2.3, got %s", fake.calls[0].Tag)
+	}
+}
+
+func TestHandlePackage_DigestOnlyVersion_Ignored(t *testing.T) {
+	// Without container_metadata the only version info is a sha256 digest,
+	// which is not a usable image tag.
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{Repository: "test/repo", Image: "img", Container: "c"}
+	fake := &fakeDeployer{}
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, nil)
+
+	payload := `{"action":"published","registry_package":{"name":"repo","package_type":"container","owner":{"login":"test"},"package_version":{"version":"sha256:3da1996a8115d7616457760d9920b815241d0a03b34cf5f04e9a0e9d8de37498"}},"repository":{"full_name":"test/repo"}}`
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if len(fake.calls) != 0 {
+		t.Fatalf("expected 0 deploy calls, got %d", len(fake.calls))
+	}
+}
+
+func TestHandlePackage_GotifySuccessMentionsImage(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "ghcr.io/test/repo",
+		Container:   "test-app",
+		TagStrategy: deploy.TagStrategyReleaseTag,
+	}
+	fake := newFakeDeployer()
+	notif := &fakeNotifier{}
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, notif)
+
+	payload := makeRegistryPackagePayload("published", "v1.2.3", "repo", "test", "test/repo", "container")
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "registry_package")
+	handler.HandlePush(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	fake.waitForCall()
+	if len(notif.sends) != 1 {
+		t.Fatalf("expected 1 notification, got %d", len(notif.sends))
+	}
+	s := notif.sends[0]
+	for _, want := range []string{
+		"Image v1.2.3 published",
+		"test-app",                // container
+		"ghcr.io/test/repo:1.2.3", // image:tag
+		"What happened:",
+	} {
+		if !strings.Contains(s.Message, want) {
+			t.Errorf("notification should mention %q, got: %s", want, s.Message)
+		}
+	}
+	if !strings.Contains(s.Title, "image deploy") {
+		t.Errorf("title should say image deploy, got: %s", s.Title)
+	}
+	if s.Priority != 2 {
+		t.Errorf("expected priority 2 for success, got %d", s.Priority)
+	}
+}
+
 func TestHandleRelease_GotifyFailureMentionsReleaseAndError(t *testing.T) {
 	handler := newTestWebhookHandler(t, "")
 	target := deploy.Target{
