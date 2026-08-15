@@ -325,6 +325,13 @@ func main() {
 		return g
 	}
 	adminHandler.SetGotifyReload(func() { reloadGotify() })
+	adminHandler.SetGotifyTest(func(ctx context.Context) error {
+		g := reloadGotify()
+		if g == nil {
+			return handlers.ErrGotifyNotConfigured
+		}
+		return g.Send(ctx, "[GitLens test]", "This is a GitLens Gotify test notification.", 1)
+	})
 	reloadGotify()
 
 	r := gin.New()
@@ -408,6 +415,7 @@ func main() {
 			})
 			admin.POST("/otel", adminHandler.UpdateOTEL)
 			admin.POST("/gotify", adminHandler.UpdateGotify)
+			admin.POST("/gotify/test", adminHandler.TestGotify)
 			admin.GET("/users", adminHandler.ListUsers)
 			admin.POST("/users/:id/toggle-admin", adminHandler.ToggleAdmin)
 		}

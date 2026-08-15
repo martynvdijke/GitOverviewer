@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -18,6 +20,7 @@ type AdminHandler struct {
 	// gotifyReload re-reads Gotify settings from the DB and re-configures
 	// the runtime notifier. Set by main; nil in tests.
 	gotifyReload func()
+	gotifyTest   func(context.Context) error
 }
 
 func NewAdminHandler(client *ent.Client, otelManager *otel.Manager) *AdminHandler {
@@ -28,6 +31,13 @@ func NewAdminHandler(client *ent.Client, otelManager *otel.Manager) *AdminHandle
 // saved so the runtime notifier picks up changes without a restart.
 func (h *AdminHandler) SetGotifyReload(fn func()) {
 	h.gotifyReload = fn
+}
+
+// SetGotifyTest registers the operation used by the admin diagnostic action.
+// Keeping it as a callback avoids coupling this handler to the Gotify client
+// and makes the endpoint deterministic to test.
+func (h *AdminHandler) SetGotifyTest(fn func(context.Context) error) {
+	h.gotifyTest = fn
 }
 
 // UpdateOTEL parses the OTEL settings form, saves to DB, and reloads providers.
@@ -197,6 +207,31 @@ func (h *AdminHandler) UpdateGotify(c *gin.Context) {
 
 	h.renderGotifyForm(c)
 }
+
+// TestGotify sends a low-priority diagnostic notification through the active
+// runtime client. It intentionally returns generic errors so credentials and
+// endpoint details cannot leak into the admin response.
+func (h *AdminHandler) TestGotify(c *gin.Context) {
+	if h.gotifyTest == nil {
+		c.String(http.StatusServiceUnavailable, "Gotify is not configured. Save a Gotify URL and token first.")
+		return
+	}
+	if err := h.gotifyTest(c.Request.Context()); err != nil {
+		if errors.Is(err, ErrGotifyNotConfigured) {
+			c.String(http.StatusServiceUnavailable, "Gotify is not configured. Save a Gotify URL and token first.")
+			return
+		}
+		log.Printf("admin: Gotify test notification failed")
+		c.String(http.StatusBadGateway, "Gotify test notification failed. Check the URL and token.")
+		return
+	}
+	c.String(http.StatusOK, "Test notification sent successfully.")
+}
+
+// ErrGotifyNotConfigured allows the runtime wiring to distinguish a missing
+// client from a configured client that failed to deliver.
+var ErrGotifyNotConfigured = errors.New("gotify not configured")
+
 
 // ---- partial render helpers ----
 

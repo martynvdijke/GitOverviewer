@@ -78,6 +78,9 @@ func adminRequest(h *AdminHandler, userID int64, method, path, body string) *htt
 	case method == "POST" && path == "/admin/gotify":
 		handlerFn = h.UpdateGotify
 		routeMethod, routePath = "POST", "/admin/gotify"
+	case method == "POST" && path == "/admin/gotify/test":
+		handlerFn = h.TestGotify
+		routeMethod, routePath = "POST", "/admin/gotify/test"
 	case method == "GET" && path == "/api/settings":
 		handlerFn = h.ListSettings
 		routeMethod, routePath = "GET", "/api/settings"
@@ -340,6 +343,49 @@ func TestAdminHandler_UpdateGotify_ReloadInvoked(t *testing.T) {
 	}
 	if !reloaded {
 		t.Fatal("expected gotifyReload callback to be invoked after save")
+	}
+}
+
+func TestAdminHandler_TestGotify_Success(t *testing.T) {
+	h, _ := newTestAdminHandler(t)
+	adminID := createAdminUser(t, h.client)
+	called := false
+	h.SetGotifyTest(func(ctx context.Context) error {
+		called = true
+		return nil
+	})
+
+	w := adminRequest(h, int64(adminID), "POST", "/admin/gotify/test", "")
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "sent successfully") {
+		t.Fatalf("expected successful test response, got %d: %s", w.Code, w.Body.String())
+	}
+	if !called {
+		t.Fatal("expected Gotify test callback to be called")
+	}
+}
+
+func TestAdminHandler_TestGotify_NotConfigured(t *testing.T) {
+	h, _ := newTestAdminHandler(t)
+	adminID := createAdminUser(t, h.client)
+
+	w := adminRequest(h, int64(adminID), "POST", "/admin/gotify/test", "")
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestAdminHandler_TestGotify_FailureDoesNotExposeCredentials(t *testing.T) {
+	h, _ := newTestAdminHandler(t)
+	adminID := createAdminUser(t, h.client)
+	secret := "secret123"
+	h.SetGotifyTest(func(ctx context.Context) error { return fmt.Errorf("request failed for token %s", secret) })
+
+	w := adminRequest(h, int64(adminID), "POST", "/admin/gotify/test", "")
+	if w.Code != http.StatusBadGateway {
+		t.Fatalf("expected 502, got %d: %s", w.Code, w.Body.String())
+	}
+	if strings.Contains(w.Body.String(), secret) {
+		t.Fatal("Gotify token must not appear in response")
 	}
 }
 

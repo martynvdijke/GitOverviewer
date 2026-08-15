@@ -20,27 +20,31 @@
 
     <div class="row g-3 mb-4">
         <div class="col-12">
-            <div class="card border-secondary p-3">
+            <div class="card border-secondary p-3" data-trend-chart-card>
                 <h6 class="fw-semibold mb-2 text-secondary small text-uppercase">Commit Types Over Time</h6>
                 <canvas id="commitTrendChart" height="200"></canvas>
+                <div data-trend-empty class="d-none text-secondary small py-5 text-center">No trend data available for this selection.</div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card border-secondary p-3">
+            <div class="card border-secondary p-3" data-trend-chart-card>
                 <h6 class="fw-semibold mb-2 text-secondary small text-uppercase">Workflow Pass Rate</h6>
                 <canvas id="workflowTrendChart" height="200"></canvas>
+                <div data-trend-empty class="d-none text-secondary small py-5 text-center">No trend data available for this selection.</div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card border-secondary p-3">
+            <div class="card border-secondary p-3" data-trend-chart-card>
                 <h6 class="fw-semibold mb-2 text-secondary small text-uppercase">Average Lead Time</h6>
                 <canvas id="leadTimeTrendChart" height="200"></canvas>
+                <div data-trend-empty class="d-none text-secondary small py-5 text-center">No trend data available for this selection.</div>
             </div>
         </div>
         <div class="col-12">
-            <div class="card border-secondary p-3">
+            <div class="card border-secondary p-3" data-trend-chart-card>
                 <h6 class="fw-semibold mb-2 text-secondary small text-uppercase">Release Frequency</h6>
                 <canvas id="releaseTrendChart" height="120"></canvas>
+                <div data-trend-empty class="d-none text-secondary small py-5 text-center">No trend data available for this selection.</div>
             </div>
         </div>
     </div>
