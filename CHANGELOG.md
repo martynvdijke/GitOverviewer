@@ -1,3 +1,10 @@
+## [1.31.2](https://github.com/martynvdijke/gitlens/compare/v1.31.1...v1.31.2) (2026-08-15)
+
+
+### Bug Fixes
+
+* **trmnl:** recreate deleted plugin ([b3a13f4](https://github.com/martynvdijke/gitlens/commit/b3a13f4c4e82ac87d2ab64b6d8df9cf415f1349f))
+
 ## [1.31.1](https://github.com/martynvdijke/gitlens/compare/v1.31.0...v1.31.1) (2026-08-15)
 
 
