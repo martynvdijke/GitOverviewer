@@ -1,3 +1,15 @@
+## [1.31.1](https://github.com/martynvdijke/gitlens/compare/v1.31.0...v1.31.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* **trmnl:** pin plugin ID and gate trmnlp push on release ([9eeecc0](https://github.com/martynvdijke/gitlens/commit/9eeecc007f1d1f0e935852c1e1b5ed94a18e46b7))
+
+
+### Reverts
+
+* remove service links to uptime kuma, npm and authelia ([05f75c2](https://github.com/martynvdijke/gitlens/commit/05f75c2ab8d2520532b83938ebd1d0bf94772ea9))
+
 # [1.31.0](https://github.com/martynvdijke/gitlens/compare/v1.30.0...v1.31.0) (2026-08-15)
 
 
