@@ -8,7 +8,7 @@ serverless_language: ''
 polling_url: "{{url}}/api/trmnl/summary"
 polling_headers: ''
 polling_body: ''
-id: 443773
+id:
 oauth_url: ''
 oauth_token_url: ''
 oauth_client_id: ''
