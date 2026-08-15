@@ -92,7 +92,10 @@ jobs:
           docker push ghcr.io/martynvdijke/gitlens:$VERSION
 
   trml:
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    if: >-
+      needs.release.result == 'success' &&
+      needs.release.outputs.new_release_published == 'true' &&
+      !contains(github.event.head_commit.message, '[skip ci]')
     name: TRMNL Lint and Push
     runs-on: ubuntu-latest
     needs: [release]
@@ -114,6 +117,16 @@ jobs:
       - name: Lint TRMNL plugin
         working-directory: trmnl
         run: trmnlp lint
+
+      - name: Require existing TRMNL plugin ID
+        working-directory: trmnl
+        run: |
+          plugin_id=$(ruby -e 'require "yaml"; puts YAML.load_file("src/settings.yml")["id"].to_s.strip')
+          if [ -z "$plugin_id" ]; then
+            echo "::error::src/settings.yml has no 'id' set. Set the plugin ID (see 'trmnlp list' or the TRMNL dashboard) so 'trmnlp push' updates the existing plugin instead of creating a new one."
+            exit 1
+          fi
+          echo "TRMNL plugin ID: $plugin_id"
 
       - name: Push TRMNL plugin
         working-directory: trmnl
