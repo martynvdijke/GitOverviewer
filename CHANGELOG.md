@@ -1,3 +1,10 @@
+## [1.29.3](https://github.com/martynvdijke/gitlens/compare/v1.29.2...v1.29.3) (2026-08-15)
+
+
+### Bug Fixes
+
+* aggregate trends charts and add gotify test notification ([313809b](https://github.com/martynvdijke/gitlens/commit/313809b03173b143c9615389d523cc5c7d2fb433))
+
 ## [1.29.2](https://github.com/martynvdijke/gitlens/compare/v1.29.1...v1.29.2) (2026-08-14)
 
 ## [1.29.1](https://github.com/martynvdijke/gitlens/compare/v1.29.0...v1.29.1) (2026-08-14)
