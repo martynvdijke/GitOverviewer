@@ -60,9 +60,9 @@ func (f *fakeLinkStore) All(ctx context.Context) ([]services.Link, error) {
 }
 
 type fakeKuma struct {
-	createID int64
+	createID  int64
 	createErr error
-	status   string
+	status    string
 	statusErr error
 }
 

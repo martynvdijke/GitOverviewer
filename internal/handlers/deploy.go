@@ -15,19 +15,19 @@ import (
 
 // deployDashboardData is passed to the deploy_tab template.
 type deployDashboardData struct {
-	ActiveTab       string
-	Enabled         bool
-	Backend         string
-	GotifyOn        bool
-	Total           int
-	Targets         []deployTargetRow
-	Discovered      []deployContainerRow // containers carrying gitlens.deploy.target
-	DockerErr       string               // non-empty if Docker discovery failed
-	KumaOn          bool                 // Uptime Kuma configured
-	NPMOn           bool                 // NPM configured
-	ContainerLinks  []deployContainerLinksRow
-	Flash           string // optional alert text rendered in the Service Links section
-	FlashType       string // "success", "danger" or "warning"
+	ActiveTab      string
+	Enabled        bool
+	Backend        string
+	GotifyOn       bool
+	Total          int
+	Targets        []deployTargetRow
+	Discovered     []deployContainerRow // containers carrying gitlens.deploy.target
+	DockerErr      string               // non-empty if Docker discovery failed
+	KumaOn         bool                 // Uptime Kuma configured
+	NPMOn          bool                 // NPM configured
+	ContainerLinks []deployContainerLinksRow
+	Flash          string // optional alert text rendered in the Service Links section
+	FlashType      string // "success", "danger" or "warning"
 }
 
 type deployTargetRow struct {
@@ -215,8 +215,8 @@ var serviceOrder = []services.Service{
 // serviceLabels maps a service to its display name.
 var serviceLabels = map[services.Service]string{
 	services.ServiceUptimeKuma: "Uptime Kuma",
-	services.ServiceNPM:         "NPM",
-	services.ServiceAuthelia:    "Authelia",
+	services.ServiceNPM:        "NPM",
+	services.ServiceAuthelia:   "Authelia",
 }
 
 func serviceLabel(s services.Service) string {

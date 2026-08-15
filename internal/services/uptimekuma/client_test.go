@@ -11,12 +11,12 @@ import (
 
 // fakeSession records calls and returns canned results.
 type fakeSession struct {
-	createErr     error
-	createID      int64
-	statusActive  bool // canned status returned for GetMonitorAs
-	statusValue   int
-	statusErr     error
-	disconnected  bool
+	createErr    error
+	createID     int64
+	statusActive bool // canned status returned for GetMonitorAs
+	statusValue  int
+	statusErr    error
+	disconnected bool
 }
 
 func (f *fakeSession) CreateMonitor(ctx context.Context, mon monitor.Monitor) (int64, error) {
