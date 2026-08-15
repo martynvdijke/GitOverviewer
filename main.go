@@ -28,6 +28,9 @@ import (
 	"gitlens/internal/middleware"
 	"gitlens/internal/otel"
 	"gitlens/internal/provider"
+	"gitlens/internal/services"
+	"gitlens/internal/services/npm"
+	"gitlens/internal/services/uptimekuma"
 	"gitlens/internal/sync"
 	"gitlens/internal/ws"
 
@@ -304,6 +307,10 @@ func main() {
 		log.Printf("Deploy: %d target(s) configured, backend=%s", len(targets), deploy.DeployBackend())
 	}
 	deployHandler := handlers.NewDeployHandler(false)
+	// Service links: manual container → Uptime Kuma / NPM / Authelia links,
+	// persisted via the ServiceLink ent schema. Clients are nil when the
+	// corresponding env vars are unset, which disables those services.
+	deployHandler.SetServiceClients(services.NewStore(client), uptimekuma.New(), npm.New())
 	feedHandler := handlers.NewFeedHandler(client)
 	trendsHandler := handlers.NewTrendsHandler(client)
 	yearOverviewHandler := handlers.NewYearOverviewHandler(client, syncer)
@@ -396,6 +403,11 @@ func main() {
 		authed.GET("/metrics/history", trendsHandler.MetricsHistory)
 		authed.GET("/trends", middleware.HTMXOnly(), trendsHandler.TrendsPage)
 		authed.GET("/deploy", middleware.HTMXOnly(), deployHandler.Dashboard)
+		authed.POST("/deploy/links", deployHandler.CreateLink)
+		authed.DELETE("/deploy/links", deployHandler.DeleteLink)
+		authed.POST("/deploy/links/uptime-kuma/add-monitor", deployHandler.AddKumaMonitor)
+		authed.POST("/deploy/links/npm/add-proxy-host", deployHandler.AddNPMProxyHost)
+		authed.GET("/deploy/links/authelia/yaml", deployHandler.AutheliaYAML)
 		authed.GET("/year-overview", middleware.HTMXOnly(), yearOverviewHandler.YearOverview)
 		authed.GET("/year-overview/stats", yearOverviewHandler.Stats)
 		authed.GET("/year-overview/backfill-status", yearOverviewHandler.BackfillStatus)

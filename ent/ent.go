@@ -11,6 +11,7 @@ import (
 	"gitlens/ent/event"
 	"gitlens/ent/metricsnapshot"
 	"gitlens/ent/repository"
+	"gitlens/ent/servicelink"
 	"gitlens/ent/user"
 	"reflect"
 	"sync"
@@ -83,6 +84,7 @@ func checkColumn(t, c string) error {
 			event.Table:          event.ValidColumn,
 			metricsnapshot.Table: metricsnapshot.ValidColumn,
 			repository.Table:     repository.ValidColumn,
+			servicelink.Table:    servicelink.ValidColumn,
 			user.Table:           user.ValidColumn,
 		})
 	})

@@ -12,6 +12,7 @@ import (
 	"gitlens/ent/metricsnapshot"
 	"gitlens/ent/predicate"
 	"gitlens/ent/repository"
+	"gitlens/ent/servicelink"
 	"gitlens/ent/user"
 	"sync"
 	"time"
@@ -34,6 +35,7 @@ const (
 	TypeEvent          = "Event"
 	TypeMetricSnapshot = "MetricSnapshot"
 	TypeRepository     = "Repository"
+	TypeServiceLink    = "ServiceLink"
 	TypeUser           = "User"
 )
 
@@ -7473,6 +7475,570 @@ func (m *RepositoryMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Repository edge %s", name)
+}
+
+// ServiceLinkMutation represents an operation that mutates the ServiceLink nodes in the graph.
+type ServiceLinkMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	container     *string
+	service       *servicelink.Service
+	reference     *string
+	live_state    *string
+	updated_at    *time.Time
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*ServiceLink, error)
+	predicates    []predicate.ServiceLink
+}
+
+var _ ent.Mutation = (*ServiceLinkMutation)(nil)
+
+// servicelinkOption allows management of the mutation configuration using functional options.
+type servicelinkOption func(*ServiceLinkMutation)
+
+// newServiceLinkMutation creates new mutation for the ServiceLink entity.
+func newServiceLinkMutation(c config, op Op, opts ...servicelinkOption) *ServiceLinkMutation {
+	m := &ServiceLinkMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeServiceLink,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withServiceLinkID sets the ID field of the mutation.
+func withServiceLinkID(id int) servicelinkOption {
+	return func(m *ServiceLinkMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ServiceLink
+		)
+		m.oldValue = func(ctx context.Context) (*ServiceLink, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ServiceLink.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withServiceLink sets the old ServiceLink of the mutation.
+func withServiceLink(node *ServiceLink) servicelinkOption {
+	return func(m *ServiceLinkMutation) {
+		m.oldValue = func(context.Context) (*ServiceLink, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ServiceLinkMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ServiceLinkMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ServiceLinkMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ServiceLinkMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ServiceLink.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetContainer sets the "container" field.
+func (m *ServiceLinkMutation) SetContainer(s string) {
+	m.container = &s
+}
+
+// Container returns the value of the "container" field in the mutation.
+func (m *ServiceLinkMutation) Container() (r string, exists bool) {
+	v := m.container
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContainer returns the old "container" field's value of the ServiceLink entity.
+// If the ServiceLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ServiceLinkMutation) OldContainer(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContainer is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContainer requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContainer: %w", err)
+	}
+	return oldValue.Container, nil
+}
+
+// ResetContainer resets all changes to the "container" field.
+func (m *ServiceLinkMutation) ResetContainer() {
+	m.container = nil
+}
+
+// SetService sets the "service" field.
+func (m *ServiceLinkMutation) SetService(s servicelink.Service) {
+	m.service = &s
+}
+
+// Service returns the value of the "service" field in the mutation.
+func (m *ServiceLinkMutation) Service() (r servicelink.Service, exists bool) {
+	v := m.service
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldService returns the old "service" field's value of the ServiceLink entity.
+// If the ServiceLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ServiceLinkMutation) OldService(ctx context.Context) (v servicelink.Service, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldService is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldService requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldService: %w", err)
+	}
+	return oldValue.Service, nil
+}
+
+// ResetService resets all changes to the "service" field.
+func (m *ServiceLinkMutation) ResetService() {
+	m.service = nil
+}
+
+// SetReference sets the "reference" field.
+func (m *ServiceLinkMutation) SetReference(s string) {
+	m.reference = &s
+}
+
+// Reference returns the value of the "reference" field in the mutation.
+func (m *ServiceLinkMutation) Reference() (r string, exists bool) {
+	v := m.reference
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReference returns the old "reference" field's value of the ServiceLink entity.
+// If the ServiceLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ServiceLinkMutation) OldReference(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReference is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReference requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReference: %w", err)
+	}
+	return oldValue.Reference, nil
+}
+
+// ResetReference resets all changes to the "reference" field.
+func (m *ServiceLinkMutation) ResetReference() {
+	m.reference = nil
+}
+
+// SetLiveState sets the "live_state" field.
+func (m *ServiceLinkMutation) SetLiveState(s string) {
+	m.live_state = &s
+}
+
+// LiveState returns the value of the "live_state" field in the mutation.
+func (m *ServiceLinkMutation) LiveState() (r string, exists bool) {
+	v := m.live_state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLiveState returns the old "live_state" field's value of the ServiceLink entity.
+// If the ServiceLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ServiceLinkMutation) OldLiveState(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLiveState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLiveState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLiveState: %w", err)
+	}
+	return oldValue.LiveState, nil
+}
+
+// ClearLiveState clears the value of the "live_state" field.
+func (m *ServiceLinkMutation) ClearLiveState() {
+	m.live_state = nil
+	m.clearedFields[servicelink.FieldLiveState] = struct{}{}
+}
+
+// LiveStateCleared returns if the "live_state" field was cleared in this mutation.
+func (m *ServiceLinkMutation) LiveStateCleared() bool {
+	_, ok := m.clearedFields[servicelink.FieldLiveState]
+	return ok
+}
+
+// ResetLiveState resets all changes to the "live_state" field.
+func (m *ServiceLinkMutation) ResetLiveState() {
+	m.live_state = nil
+	delete(m.clearedFields, servicelink.FieldLiveState)
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *ServiceLinkMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *ServiceLinkMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the ServiceLink entity.
+// If the ServiceLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ServiceLinkMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *ServiceLinkMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the ServiceLinkMutation builder.
+func (m *ServiceLinkMutation) Where(ps ...predicate.ServiceLink) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ServiceLinkMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ServiceLinkMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ServiceLink, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ServiceLinkMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ServiceLinkMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ServiceLink).
+func (m *ServiceLinkMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ServiceLinkMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.container != nil {
+		fields = append(fields, servicelink.FieldContainer)
+	}
+	if m.service != nil {
+		fields = append(fields, servicelink.FieldService)
+	}
+	if m.reference != nil {
+		fields = append(fields, servicelink.FieldReference)
+	}
+	if m.live_state != nil {
+		fields = append(fields, servicelink.FieldLiveState)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, servicelink.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ServiceLinkMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case servicelink.FieldContainer:
+		return m.Container()
+	case servicelink.FieldService:
+		return m.Service()
+	case servicelink.FieldReference:
+		return m.Reference()
+	case servicelink.FieldLiveState:
+		return m.LiveState()
+	case servicelink.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ServiceLinkMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case servicelink.FieldContainer:
+		return m.OldContainer(ctx)
+	case servicelink.FieldService:
+		return m.OldService(ctx)
+	case servicelink.FieldReference:
+		return m.OldReference(ctx)
+	case servicelink.FieldLiveState:
+		return m.OldLiveState(ctx)
+	case servicelink.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ServiceLink field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ServiceLinkMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case servicelink.FieldContainer:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContainer(v)
+		return nil
+	case servicelink.FieldService:
+		v, ok := value.(servicelink.Service)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetService(v)
+		return nil
+	case servicelink.FieldReference:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReference(v)
+		return nil
+	case servicelink.FieldLiveState:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLiveState(v)
+		return nil
+	case servicelink.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ServiceLink field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ServiceLinkMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ServiceLinkMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ServiceLinkMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown ServiceLink numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ServiceLinkMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(servicelink.FieldLiveState) {
+		fields = append(fields, servicelink.FieldLiveState)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ServiceLinkMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ServiceLinkMutation) ClearField(name string) error {
+	switch name {
+	case servicelink.FieldLiveState:
+		m.ClearLiveState()
+		return nil
+	}
+	return fmt.Errorf("unknown ServiceLink nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ServiceLinkMutation) ResetField(name string) error {
+	switch name {
+	case servicelink.FieldContainer:
+		m.ResetContainer()
+		return nil
+	case servicelink.FieldService:
+		m.ResetService()
+		return nil
+	case servicelink.FieldReference:
+		m.ResetReference()
+		return nil
+	case servicelink.FieldLiveState:
+		m.ResetLiveState()
+		return nil
+	case servicelink.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ServiceLink field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ServiceLinkMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ServiceLinkMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ServiceLinkMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ServiceLinkMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ServiceLinkMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ServiceLinkMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ServiceLinkMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ServiceLink unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ServiceLinkMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ServiceLink edge %s", name)
 }
 
 // UserMutation represents an operation that mutates the User nodes in the graph.

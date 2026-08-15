@@ -10,6 +10,7 @@ import (
 	"gitlens/ent/user"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 )
@@ -19,6 +20,7 @@ type UserCreate struct {
 	config
 	mutation *UserMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetGithubID sets the "github_id" field.
@@ -380,6 +382,7 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_node = &User{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(user.Table, sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = _c.conflict
 	if value, ok := _c.mutation.GithubID(); ok {
 		_spec.SetField(user.FieldGithubID, field.TypeInt64, value)
 		_node.GithubID = value
@@ -475,11 +478,823 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.User.Create().
+//		SetGithubID(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.UserUpsert) {
+//			SetGithubID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *UserCreate) OnConflict(opts ...sql.ConflictOption) *UserUpsertOne {
+	_c.conflict = opts
+	return &UserUpsertOne{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.User.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *UserCreate) OnConflictColumns(columns ...string) *UserUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &UserUpsertOne{
+		create: _c,
+	}
+}
+
+type (
+	// UserUpsertOne is the builder for "upsert"-ing
+	//  one User node.
+	UserUpsertOne struct {
+		create *UserCreate
+	}
+
+	// UserUpsert is the "OnConflict" setter.
+	UserUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetGithubID sets the "github_id" field.
+func (u *UserUpsert) SetGithubID(v int64) *UserUpsert {
+	u.Set(user.FieldGithubID, v)
+	return u
+}
+
+// UpdateGithubID sets the "github_id" field to the value that was provided on create.
+func (u *UserUpsert) UpdateGithubID() *UserUpsert {
+	u.SetExcluded(user.FieldGithubID)
+	return u
+}
+
+// AddGithubID adds v to the "github_id" field.
+func (u *UserUpsert) AddGithubID(v int64) *UserUpsert {
+	u.Add(user.FieldGithubID, v)
+	return u
+}
+
+// SetLogin sets the "login" field.
+func (u *UserUpsert) SetLogin(v string) *UserUpsert {
+	u.Set(user.FieldLogin, v)
+	return u
+}
+
+// UpdateLogin sets the "login" field to the value that was provided on create.
+func (u *UserUpsert) UpdateLogin() *UserUpsert {
+	u.SetExcluded(user.FieldLogin)
+	return u
+}
+
+// SetAvatarURL sets the "avatar_url" field.
+func (u *UserUpsert) SetAvatarURL(v string) *UserUpsert {
+	u.Set(user.FieldAvatarURL, v)
+	return u
+}
+
+// UpdateAvatarURL sets the "avatar_url" field to the value that was provided on create.
+func (u *UserUpsert) UpdateAvatarURL() *UserUpsert {
+	u.SetExcluded(user.FieldAvatarURL)
+	return u
+}
+
+// ClearAvatarURL clears the value of the "avatar_url" field.
+func (u *UserUpsert) ClearAvatarURL() *UserUpsert {
+	u.SetNull(user.FieldAvatarURL)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *UserUpsert) SetName(v string) *UserUpsert {
+	u.Set(user.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *UserUpsert) UpdateName() *UserUpsert {
+	u.SetExcluded(user.FieldName)
+	return u
+}
+
+// ClearName clears the value of the "name" field.
+func (u *UserUpsert) ClearName() *UserUpsert {
+	u.SetNull(user.FieldName)
+	return u
+}
+
+// SetAccessToken sets the "access_token" field.
+func (u *UserUpsert) SetAccessToken(v string) *UserUpsert {
+	u.Set(user.FieldAccessToken, v)
+	return u
+}
+
+// UpdateAccessToken sets the "access_token" field to the value that was provided on create.
+func (u *UserUpsert) UpdateAccessToken() *UserUpsert {
+	u.SetExcluded(user.FieldAccessToken)
+	return u
+}
+
+// SetSyncIntervalMinutes sets the "sync_interval_minutes" field.
+func (u *UserUpsert) SetSyncIntervalMinutes(v int) *UserUpsert {
+	u.Set(user.FieldSyncIntervalMinutes, v)
+	return u
+}
+
+// UpdateSyncIntervalMinutes sets the "sync_interval_minutes" field to the value that was provided on create.
+func (u *UserUpsert) UpdateSyncIntervalMinutes() *UserUpsert {
+	u.SetExcluded(user.FieldSyncIntervalMinutes)
+	return u
+}
+
+// AddSyncIntervalMinutes adds v to the "sync_interval_minutes" field.
+func (u *UserUpsert) AddSyncIntervalMinutes(v int) *UserUpsert {
+	u.Add(user.FieldSyncIntervalMinutes, v)
+	return u
+}
+
+// SetUmamiURL sets the "umami_url" field.
+func (u *UserUpsert) SetUmamiURL(v string) *UserUpsert {
+	u.Set(user.FieldUmamiURL, v)
+	return u
+}
+
+// UpdateUmamiURL sets the "umami_url" field to the value that was provided on create.
+func (u *UserUpsert) UpdateUmamiURL() *UserUpsert {
+	u.SetExcluded(user.FieldUmamiURL)
+	return u
+}
+
+// ClearUmamiURL clears the value of the "umami_url" field.
+func (u *UserUpsert) ClearUmamiURL() *UserUpsert {
+	u.SetNull(user.FieldUmamiURL)
+	return u
+}
+
+// SetUmamiSiteID sets the "umami_site_id" field.
+func (u *UserUpsert) SetUmamiSiteID(v string) *UserUpsert {
+	u.Set(user.FieldUmamiSiteID, v)
+	return u
+}
+
+// UpdateUmamiSiteID sets the "umami_site_id" field to the value that was provided on create.
+func (u *UserUpsert) UpdateUmamiSiteID() *UserUpsert {
+	u.SetExcluded(user.FieldUmamiSiteID)
+	return u
+}
+
+// ClearUmamiSiteID clears the value of the "umami_site_id" field.
+func (u *UserUpsert) ClearUmamiSiteID() *UserUpsert {
+	u.SetNull(user.FieldUmamiSiteID)
+	return u
+}
+
+// SetIsAdmin sets the "is_admin" field.
+func (u *UserUpsert) SetIsAdmin(v bool) *UserUpsert {
+	u.Set(user.FieldIsAdmin, v)
+	return u
+}
+
+// UpdateIsAdmin sets the "is_admin" field to the value that was provided on create.
+func (u *UserUpsert) UpdateIsAdmin() *UserUpsert {
+	u.SetExcluded(user.FieldIsAdmin)
+	return u
+}
+
+// SetSyncedAt sets the "synced_at" field.
+func (u *UserUpsert) SetSyncedAt(v time.Time) *UserUpsert {
+	u.Set(user.FieldSyncedAt, v)
+	return u
+}
+
+// UpdateSyncedAt sets the "synced_at" field to the value that was provided on create.
+func (u *UserUpsert) UpdateSyncedAt() *UserUpsert {
+	u.SetExcluded(user.FieldSyncedAt)
+	return u
+}
+
+// ClearSyncedAt clears the value of the "synced_at" field.
+func (u *UserUpsert) ClearSyncedAt() *UserUpsert {
+	u.SetNull(user.FieldSyncedAt)
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *UserUpsert) SetCreatedAt(v time.Time) *UserUpsert {
+	u.Set(user.FieldCreatedAt, v)
+	return u
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *UserUpsert) UpdateCreatedAt() *UserUpsert {
+	u.SetExcluded(user.FieldCreatedAt)
+	return u
+}
+
+// SetForgejoID sets the "forgejo_id" field.
+func (u *UserUpsert) SetForgejoID(v int64) *UserUpsert {
+	u.Set(user.FieldForgejoID, v)
+	return u
+}
+
+// UpdateForgejoID sets the "forgejo_id" field to the value that was provided on create.
+func (u *UserUpsert) UpdateForgejoID() *UserUpsert {
+	u.SetExcluded(user.FieldForgejoID)
+	return u
+}
+
+// AddForgejoID adds v to the "forgejo_id" field.
+func (u *UserUpsert) AddForgejoID(v int64) *UserUpsert {
+	u.Add(user.FieldForgejoID, v)
+	return u
+}
+
+// ClearForgejoID clears the value of the "forgejo_id" field.
+func (u *UserUpsert) ClearForgejoID() *UserUpsert {
+	u.SetNull(user.FieldForgejoID)
+	return u
+}
+
+// SetForgejoLogin sets the "forgejo_login" field.
+func (u *UserUpsert) SetForgejoLogin(v string) *UserUpsert {
+	u.Set(user.FieldForgejoLogin, v)
+	return u
+}
+
+// UpdateForgejoLogin sets the "forgejo_login" field to the value that was provided on create.
+func (u *UserUpsert) UpdateForgejoLogin() *UserUpsert {
+	u.SetExcluded(user.FieldForgejoLogin)
+	return u
+}
+
+// ClearForgejoLogin clears the value of the "forgejo_login" field.
+func (u *UserUpsert) ClearForgejoLogin() *UserUpsert {
+	u.SetNull(user.FieldForgejoLogin)
+	return u
+}
+
+// SetForgejoAvatarURL sets the "forgejo_avatar_url" field.
+func (u *UserUpsert) SetForgejoAvatarURL(v string) *UserUpsert {
+	u.Set(user.FieldForgejoAvatarURL, v)
+	return u
+}
+
+// UpdateForgejoAvatarURL sets the "forgejo_avatar_url" field to the value that was provided on create.
+func (u *UserUpsert) UpdateForgejoAvatarURL() *UserUpsert {
+	u.SetExcluded(user.FieldForgejoAvatarURL)
+	return u
+}
+
+// ClearForgejoAvatarURL clears the value of the "forgejo_avatar_url" field.
+func (u *UserUpsert) ClearForgejoAvatarURL() *UserUpsert {
+	u.SetNull(user.FieldForgejoAvatarURL)
+	return u
+}
+
+// SetForgejoName sets the "forgejo_name" field.
+func (u *UserUpsert) SetForgejoName(v string) *UserUpsert {
+	u.Set(user.FieldForgejoName, v)
+	return u
+}
+
+// UpdateForgejoName sets the "forgejo_name" field to the value that was provided on create.
+func (u *UserUpsert) UpdateForgejoName() *UserUpsert {
+	u.SetExcluded(user.FieldForgejoName)
+	return u
+}
+
+// ClearForgejoName clears the value of the "forgejo_name" field.
+func (u *UserUpsert) ClearForgejoName() *UserUpsert {
+	u.SetNull(user.FieldForgejoName)
+	return u
+}
+
+// SetForgejoAccessToken sets the "forgejo_access_token" field.
+func (u *UserUpsert) SetForgejoAccessToken(v string) *UserUpsert {
+	u.Set(user.FieldForgejoAccessToken, v)
+	return u
+}
+
+// UpdateForgejoAccessToken sets the "forgejo_access_token" field to the value that was provided on create.
+func (u *UserUpsert) UpdateForgejoAccessToken() *UserUpsert {
+	u.SetExcluded(user.FieldForgejoAccessToken)
+	return u
+}
+
+// ClearForgejoAccessToken clears the value of the "forgejo_access_token" field.
+func (u *UserUpsert) ClearForgejoAccessToken() *UserUpsert {
+	u.SetNull(user.FieldForgejoAccessToken)
+	return u
+}
+
+// SetForgejoURL sets the "forgejo_url" field.
+func (u *UserUpsert) SetForgejoURL(v string) *UserUpsert {
+	u.Set(user.FieldForgejoURL, v)
+	return u
+}
+
+// UpdateForgejoURL sets the "forgejo_url" field to the value that was provided on create.
+func (u *UserUpsert) UpdateForgejoURL() *UserUpsert {
+	u.SetExcluded(user.FieldForgejoURL)
+	return u
+}
+
+// ClearForgejoURL clears the value of the "forgejo_url" field.
+func (u *UserUpsert) ClearForgejoURL() *UserUpsert {
+	u.SetNull(user.FieldForgejoURL)
+	return u
+}
+
+// SetEinkMode sets the "eink_mode" field.
+func (u *UserUpsert) SetEinkMode(v bool) *UserUpsert {
+	u.Set(user.FieldEinkMode, v)
+	return u
+}
+
+// UpdateEinkMode sets the "eink_mode" field to the value that was provided on create.
+func (u *UserUpsert) UpdateEinkMode() *UserUpsert {
+	u.SetExcluded(user.FieldEinkMode)
+	return u
+}
+
+// SetDismissedForgejoWarningFor sets the "dismissed_forgejo_warning_for" field.
+func (u *UserUpsert) SetDismissedForgejoWarningFor(v string) *UserUpsert {
+	u.Set(user.FieldDismissedForgejoWarningFor, v)
+	return u
+}
+
+// UpdateDismissedForgejoWarningFor sets the "dismissed_forgejo_warning_for" field to the value that was provided on create.
+func (u *UserUpsert) UpdateDismissedForgejoWarningFor() *UserUpsert {
+	u.SetExcluded(user.FieldDismissedForgejoWarningFor)
+	return u
+}
+
+// ClearDismissedForgejoWarningFor clears the value of the "dismissed_forgejo_warning_for" field.
+func (u *UserUpsert) ClearDismissedForgejoWarningFor() *UserUpsert {
+	u.SetNull(user.FieldDismissedForgejoWarningFor)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.User.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *UserUpsertOne) UpdateNewValues() *UserUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.User.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *UserUpsertOne) Ignore() *UserUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *UserUpsertOne) DoNothing() *UserUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the UserCreate.OnConflict
+// documentation for more info.
+func (u *UserUpsertOne) Update(set func(*UserUpsert)) *UserUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&UserUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetGithubID sets the "github_id" field.
+func (u *UserUpsertOne) SetGithubID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetGithubID(v)
+	})
+}
+
+// AddGithubID adds v to the "github_id" field.
+func (u *UserUpsertOne) AddGithubID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.AddGithubID(v)
+	})
+}
+
+// UpdateGithubID sets the "github_id" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateGithubID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateGithubID()
+	})
+}
+
+// SetLogin sets the "login" field.
+func (u *UserUpsertOne) SetLogin(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetLogin(v)
+	})
+}
+
+// UpdateLogin sets the "login" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateLogin() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateLogin()
+	})
+}
+
+// SetAvatarURL sets the "avatar_url" field.
+func (u *UserUpsertOne) SetAvatarURL(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAvatarURL(v)
+	})
+}
+
+// UpdateAvatarURL sets the "avatar_url" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateAvatarURL() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAvatarURL()
+	})
+}
+
+// ClearAvatarURL clears the value of the "avatar_url" field.
+func (u *UserUpsertOne) ClearAvatarURL() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearAvatarURL()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *UserUpsertOne) SetName(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateName() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateName()
+	})
+}
+
+// ClearName clears the value of the "name" field.
+func (u *UserUpsertOne) ClearName() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearName()
+	})
+}
+
+// SetAccessToken sets the "access_token" field.
+func (u *UserUpsertOne) SetAccessToken(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAccessToken(v)
+	})
+}
+
+// UpdateAccessToken sets the "access_token" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateAccessToken() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAccessToken()
+	})
+}
+
+// SetSyncIntervalMinutes sets the "sync_interval_minutes" field.
+func (u *UserUpsertOne) SetSyncIntervalMinutes(v int) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetSyncIntervalMinutes(v)
+	})
+}
+
+// AddSyncIntervalMinutes adds v to the "sync_interval_minutes" field.
+func (u *UserUpsertOne) AddSyncIntervalMinutes(v int) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.AddSyncIntervalMinutes(v)
+	})
+}
+
+// UpdateSyncIntervalMinutes sets the "sync_interval_minutes" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateSyncIntervalMinutes() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateSyncIntervalMinutes()
+	})
+}
+
+// SetUmamiURL sets the "umami_url" field.
+func (u *UserUpsertOne) SetUmamiURL(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetUmamiURL(v)
+	})
+}
+
+// UpdateUmamiURL sets the "umami_url" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateUmamiURL() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateUmamiURL()
+	})
+}
+
+// ClearUmamiURL clears the value of the "umami_url" field.
+func (u *UserUpsertOne) ClearUmamiURL() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearUmamiURL()
+	})
+}
+
+// SetUmamiSiteID sets the "umami_site_id" field.
+func (u *UserUpsertOne) SetUmamiSiteID(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetUmamiSiteID(v)
+	})
+}
+
+// UpdateUmamiSiteID sets the "umami_site_id" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateUmamiSiteID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateUmamiSiteID()
+	})
+}
+
+// ClearUmamiSiteID clears the value of the "umami_site_id" field.
+func (u *UserUpsertOne) ClearUmamiSiteID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearUmamiSiteID()
+	})
+}
+
+// SetIsAdmin sets the "is_admin" field.
+func (u *UserUpsertOne) SetIsAdmin(v bool) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetIsAdmin(v)
+	})
+}
+
+// UpdateIsAdmin sets the "is_admin" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateIsAdmin() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateIsAdmin()
+	})
+}
+
+// SetSyncedAt sets the "synced_at" field.
+func (u *UserUpsertOne) SetSyncedAt(v time.Time) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetSyncedAt(v)
+	})
+}
+
+// UpdateSyncedAt sets the "synced_at" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateSyncedAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateSyncedAt()
+	})
+}
+
+// ClearSyncedAt clears the value of the "synced_at" field.
+func (u *UserUpsertOne) ClearSyncedAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearSyncedAt()
+	})
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *UserUpsertOne) SetCreatedAt(v time.Time) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateCreatedAt() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetForgejoID sets the "forgejo_id" field.
+func (u *UserUpsertOne) SetForgejoID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoID(v)
+	})
+}
+
+// AddForgejoID adds v to the "forgejo_id" field.
+func (u *UserUpsertOne) AddForgejoID(v int64) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.AddForgejoID(v)
+	})
+}
+
+// UpdateForgejoID sets the "forgejo_id" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateForgejoID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoID()
+	})
+}
+
+// ClearForgejoID clears the value of the "forgejo_id" field.
+func (u *UserUpsertOne) ClearForgejoID() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoID()
+	})
+}
+
+// SetForgejoLogin sets the "forgejo_login" field.
+func (u *UserUpsertOne) SetForgejoLogin(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoLogin(v)
+	})
+}
+
+// UpdateForgejoLogin sets the "forgejo_login" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateForgejoLogin() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoLogin()
+	})
+}
+
+// ClearForgejoLogin clears the value of the "forgejo_login" field.
+func (u *UserUpsertOne) ClearForgejoLogin() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoLogin()
+	})
+}
+
+// SetForgejoAvatarURL sets the "forgejo_avatar_url" field.
+func (u *UserUpsertOne) SetForgejoAvatarURL(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoAvatarURL(v)
+	})
+}
+
+// UpdateForgejoAvatarURL sets the "forgejo_avatar_url" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateForgejoAvatarURL() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoAvatarURL()
+	})
+}
+
+// ClearForgejoAvatarURL clears the value of the "forgejo_avatar_url" field.
+func (u *UserUpsertOne) ClearForgejoAvatarURL() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoAvatarURL()
+	})
+}
+
+// SetForgejoName sets the "forgejo_name" field.
+func (u *UserUpsertOne) SetForgejoName(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoName(v)
+	})
+}
+
+// UpdateForgejoName sets the "forgejo_name" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateForgejoName() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoName()
+	})
+}
+
+// ClearForgejoName clears the value of the "forgejo_name" field.
+func (u *UserUpsertOne) ClearForgejoName() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoName()
+	})
+}
+
+// SetForgejoAccessToken sets the "forgejo_access_token" field.
+func (u *UserUpsertOne) SetForgejoAccessToken(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoAccessToken(v)
+	})
+}
+
+// UpdateForgejoAccessToken sets the "forgejo_access_token" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateForgejoAccessToken() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoAccessToken()
+	})
+}
+
+// ClearForgejoAccessToken clears the value of the "forgejo_access_token" field.
+func (u *UserUpsertOne) ClearForgejoAccessToken() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoAccessToken()
+	})
+}
+
+// SetForgejoURL sets the "forgejo_url" field.
+func (u *UserUpsertOne) SetForgejoURL(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoURL(v)
+	})
+}
+
+// UpdateForgejoURL sets the "forgejo_url" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateForgejoURL() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoURL()
+	})
+}
+
+// ClearForgejoURL clears the value of the "forgejo_url" field.
+func (u *UserUpsertOne) ClearForgejoURL() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoURL()
+	})
+}
+
+// SetEinkMode sets the "eink_mode" field.
+func (u *UserUpsertOne) SetEinkMode(v bool) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetEinkMode(v)
+	})
+}
+
+// UpdateEinkMode sets the "eink_mode" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateEinkMode() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateEinkMode()
+	})
+}
+
+// SetDismissedForgejoWarningFor sets the "dismissed_forgejo_warning_for" field.
+func (u *UserUpsertOne) SetDismissedForgejoWarningFor(v string) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetDismissedForgejoWarningFor(v)
+	})
+}
+
+// UpdateDismissedForgejoWarningFor sets the "dismissed_forgejo_warning_for" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateDismissedForgejoWarningFor() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateDismissedForgejoWarningFor()
+	})
+}
+
+// ClearDismissedForgejoWarningFor clears the value of the "dismissed_forgejo_warning_for" field.
+func (u *UserUpsertOne) ClearDismissedForgejoWarningFor() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearDismissedForgejoWarningFor()
+	})
+}
+
+// Exec executes the query.
+func (u *UserUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for UserCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *UserUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *UserUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *UserUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // UserCreateBulk is the builder for creating many User entities in bulk.
 type UserCreateBulk struct {
 	config
 	err      error
 	builders []*UserCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the User entities in the database.
@@ -509,6 +1324,7 @@ func (_c *UserCreateBulk) Save(ctx context.Context) ([]*User, error) {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -559,6 +1375,481 @@ func (_c *UserCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (_c *UserCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.User.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.UserUpsert) {
+//			SetGithubID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *UserCreateBulk) OnConflict(opts ...sql.ConflictOption) *UserUpsertBulk {
+	_c.conflict = opts
+	return &UserUpsertBulk{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.User.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *UserCreateBulk) OnConflictColumns(columns ...string) *UserUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &UserUpsertBulk{
+		create: _c,
+	}
+}
+
+// UserUpsertBulk is the builder for "upsert"-ing
+// a bulk of User nodes.
+type UserUpsertBulk struct {
+	create *UserCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.User.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *UserUpsertBulk) UpdateNewValues() *UserUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.User.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *UserUpsertBulk) Ignore() *UserUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *UserUpsertBulk) DoNothing() *UserUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the UserCreateBulk.OnConflict
+// documentation for more info.
+func (u *UserUpsertBulk) Update(set func(*UserUpsert)) *UserUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&UserUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetGithubID sets the "github_id" field.
+func (u *UserUpsertBulk) SetGithubID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetGithubID(v)
+	})
+}
+
+// AddGithubID adds v to the "github_id" field.
+func (u *UserUpsertBulk) AddGithubID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.AddGithubID(v)
+	})
+}
+
+// UpdateGithubID sets the "github_id" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateGithubID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateGithubID()
+	})
+}
+
+// SetLogin sets the "login" field.
+func (u *UserUpsertBulk) SetLogin(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetLogin(v)
+	})
+}
+
+// UpdateLogin sets the "login" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateLogin() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateLogin()
+	})
+}
+
+// SetAvatarURL sets the "avatar_url" field.
+func (u *UserUpsertBulk) SetAvatarURL(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAvatarURL(v)
+	})
+}
+
+// UpdateAvatarURL sets the "avatar_url" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateAvatarURL() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAvatarURL()
+	})
+}
+
+// ClearAvatarURL clears the value of the "avatar_url" field.
+func (u *UserUpsertBulk) ClearAvatarURL() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearAvatarURL()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *UserUpsertBulk) SetName(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateName() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateName()
+	})
+}
+
+// ClearName clears the value of the "name" field.
+func (u *UserUpsertBulk) ClearName() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearName()
+	})
+}
+
+// SetAccessToken sets the "access_token" field.
+func (u *UserUpsertBulk) SetAccessToken(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetAccessToken(v)
+	})
+}
+
+// UpdateAccessToken sets the "access_token" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateAccessToken() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateAccessToken()
+	})
+}
+
+// SetSyncIntervalMinutes sets the "sync_interval_minutes" field.
+func (u *UserUpsertBulk) SetSyncIntervalMinutes(v int) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetSyncIntervalMinutes(v)
+	})
+}
+
+// AddSyncIntervalMinutes adds v to the "sync_interval_minutes" field.
+func (u *UserUpsertBulk) AddSyncIntervalMinutes(v int) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.AddSyncIntervalMinutes(v)
+	})
+}
+
+// UpdateSyncIntervalMinutes sets the "sync_interval_minutes" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateSyncIntervalMinutes() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateSyncIntervalMinutes()
+	})
+}
+
+// SetUmamiURL sets the "umami_url" field.
+func (u *UserUpsertBulk) SetUmamiURL(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetUmamiURL(v)
+	})
+}
+
+// UpdateUmamiURL sets the "umami_url" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateUmamiURL() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateUmamiURL()
+	})
+}
+
+// ClearUmamiURL clears the value of the "umami_url" field.
+func (u *UserUpsertBulk) ClearUmamiURL() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearUmamiURL()
+	})
+}
+
+// SetUmamiSiteID sets the "umami_site_id" field.
+func (u *UserUpsertBulk) SetUmamiSiteID(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetUmamiSiteID(v)
+	})
+}
+
+// UpdateUmamiSiteID sets the "umami_site_id" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateUmamiSiteID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateUmamiSiteID()
+	})
+}
+
+// ClearUmamiSiteID clears the value of the "umami_site_id" field.
+func (u *UserUpsertBulk) ClearUmamiSiteID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearUmamiSiteID()
+	})
+}
+
+// SetIsAdmin sets the "is_admin" field.
+func (u *UserUpsertBulk) SetIsAdmin(v bool) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetIsAdmin(v)
+	})
+}
+
+// UpdateIsAdmin sets the "is_admin" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateIsAdmin() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateIsAdmin()
+	})
+}
+
+// SetSyncedAt sets the "synced_at" field.
+func (u *UserUpsertBulk) SetSyncedAt(v time.Time) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetSyncedAt(v)
+	})
+}
+
+// UpdateSyncedAt sets the "synced_at" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateSyncedAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateSyncedAt()
+	})
+}
+
+// ClearSyncedAt clears the value of the "synced_at" field.
+func (u *UserUpsertBulk) ClearSyncedAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearSyncedAt()
+	})
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *UserUpsertBulk) SetCreatedAt(v time.Time) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateCreatedAt() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetForgejoID sets the "forgejo_id" field.
+func (u *UserUpsertBulk) SetForgejoID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoID(v)
+	})
+}
+
+// AddForgejoID adds v to the "forgejo_id" field.
+func (u *UserUpsertBulk) AddForgejoID(v int64) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.AddForgejoID(v)
+	})
+}
+
+// UpdateForgejoID sets the "forgejo_id" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateForgejoID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoID()
+	})
+}
+
+// ClearForgejoID clears the value of the "forgejo_id" field.
+func (u *UserUpsertBulk) ClearForgejoID() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoID()
+	})
+}
+
+// SetForgejoLogin sets the "forgejo_login" field.
+func (u *UserUpsertBulk) SetForgejoLogin(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoLogin(v)
+	})
+}
+
+// UpdateForgejoLogin sets the "forgejo_login" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateForgejoLogin() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoLogin()
+	})
+}
+
+// ClearForgejoLogin clears the value of the "forgejo_login" field.
+func (u *UserUpsertBulk) ClearForgejoLogin() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoLogin()
+	})
+}
+
+// SetForgejoAvatarURL sets the "forgejo_avatar_url" field.
+func (u *UserUpsertBulk) SetForgejoAvatarURL(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoAvatarURL(v)
+	})
+}
+
+// UpdateForgejoAvatarURL sets the "forgejo_avatar_url" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateForgejoAvatarURL() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoAvatarURL()
+	})
+}
+
+// ClearForgejoAvatarURL clears the value of the "forgejo_avatar_url" field.
+func (u *UserUpsertBulk) ClearForgejoAvatarURL() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoAvatarURL()
+	})
+}
+
+// SetForgejoName sets the "forgejo_name" field.
+func (u *UserUpsertBulk) SetForgejoName(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoName(v)
+	})
+}
+
+// UpdateForgejoName sets the "forgejo_name" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateForgejoName() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoName()
+	})
+}
+
+// ClearForgejoName clears the value of the "forgejo_name" field.
+func (u *UserUpsertBulk) ClearForgejoName() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoName()
+	})
+}
+
+// SetForgejoAccessToken sets the "forgejo_access_token" field.
+func (u *UserUpsertBulk) SetForgejoAccessToken(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoAccessToken(v)
+	})
+}
+
+// UpdateForgejoAccessToken sets the "forgejo_access_token" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateForgejoAccessToken() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoAccessToken()
+	})
+}
+
+// ClearForgejoAccessToken clears the value of the "forgejo_access_token" field.
+func (u *UserUpsertBulk) ClearForgejoAccessToken() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoAccessToken()
+	})
+}
+
+// SetForgejoURL sets the "forgejo_url" field.
+func (u *UserUpsertBulk) SetForgejoURL(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetForgejoURL(v)
+	})
+}
+
+// UpdateForgejoURL sets the "forgejo_url" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateForgejoURL() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateForgejoURL()
+	})
+}
+
+// ClearForgejoURL clears the value of the "forgejo_url" field.
+func (u *UserUpsertBulk) ClearForgejoURL() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearForgejoURL()
+	})
+}
+
+// SetEinkMode sets the "eink_mode" field.
+func (u *UserUpsertBulk) SetEinkMode(v bool) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetEinkMode(v)
+	})
+}
+
+// UpdateEinkMode sets the "eink_mode" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateEinkMode() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateEinkMode()
+	})
+}
+
+// SetDismissedForgejoWarningFor sets the "dismissed_forgejo_warning_for" field.
+func (u *UserUpsertBulk) SetDismissedForgejoWarningFor(v string) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetDismissedForgejoWarningFor(v)
+	})
+}
+
+// UpdateDismissedForgejoWarningFor sets the "dismissed_forgejo_warning_for" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateDismissedForgejoWarningFor() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateDismissedForgejoWarningFor()
+	})
+}
+
+// ClearDismissedForgejoWarningFor clears the value of the "dismissed_forgejo_warning_for" field.
+func (u *UserUpsertBulk) ClearDismissedForgejoWarningFor() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearDismissedForgejoWarningFor()
+	})
+}
+
+// Exec executes the query.
+func (u *UserUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the UserCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for UserCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *UserUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }

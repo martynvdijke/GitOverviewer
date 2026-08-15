@@ -10,6 +10,7 @@ import (
 	"gitlens/ent/user"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 )
@@ -19,6 +20,7 @@ type RepositoryCreate struct {
 	config
 	mutation *RepositoryMutation
 	hooks    []Hook
+	conflict []sql.ConflictOption
 }
 
 // SetGithubID sets the "github_id" field.
@@ -723,6 +725,7 @@ func (_c *RepositoryCreate) createSpec() (*Repository, *sqlgraph.CreateSpec) {
 		_node = &Repository{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(repository.Table, sqlgraph.NewFieldSpec(repository.FieldID, field.TypeInt))
 	)
+	_spec.OnConflict = _c.conflict
 	if value, ok := _c.mutation.GithubID(); ok {
 		_spec.SetField(repository.FieldGithubID, field.TypeInt64, value)
 		_node.GithubID = value
@@ -919,11 +922,1928 @@ func (_c *RepositoryCreate) createSpec() (*Repository, *sqlgraph.CreateSpec) {
 	return _node, _spec
 }
 
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Repository.Create().
+//		SetGithubID(v).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.RepositoryUpsert) {
+//			SetGithubID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *RepositoryCreate) OnConflict(opts ...sql.ConflictOption) *RepositoryUpsertOne {
+	_c.conflict = opts
+	return &RepositoryUpsertOne{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Repository.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *RepositoryCreate) OnConflictColumns(columns ...string) *RepositoryUpsertOne {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &RepositoryUpsertOne{
+		create: _c,
+	}
+}
+
+type (
+	// RepositoryUpsertOne is the builder for "upsert"-ing
+	//  one Repository node.
+	RepositoryUpsertOne struct {
+		create *RepositoryCreate
+	}
+
+	// RepositoryUpsert is the "OnConflict" setter.
+	RepositoryUpsert struct {
+		*sql.UpdateSet
+	}
+)
+
+// SetGithubID sets the "github_id" field.
+func (u *RepositoryUpsert) SetGithubID(v int64) *RepositoryUpsert {
+	u.Set(repository.FieldGithubID, v)
+	return u
+}
+
+// UpdateGithubID sets the "github_id" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateGithubID() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldGithubID)
+	return u
+}
+
+// AddGithubID adds v to the "github_id" field.
+func (u *RepositoryUpsert) AddGithubID(v int64) *RepositoryUpsert {
+	u.Add(repository.FieldGithubID, v)
+	return u
+}
+
+// SetOwner sets the "owner" field.
+func (u *RepositoryUpsert) SetOwner(v string) *RepositoryUpsert {
+	u.Set(repository.FieldOwner, v)
+	return u
+}
+
+// UpdateOwner sets the "owner" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateOwner() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldOwner)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *RepositoryUpsert) SetName(v string) *RepositoryUpsert {
+	u.Set(repository.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateName() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldName)
+	return u
+}
+
+// SetFullName sets the "full_name" field.
+func (u *RepositoryUpsert) SetFullName(v string) *RepositoryUpsert {
+	u.Set(repository.FieldFullName, v)
+	return u
+}
+
+// UpdateFullName sets the "full_name" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateFullName() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldFullName)
+	return u
+}
+
+// SetDescription sets the "description" field.
+func (u *RepositoryUpsert) SetDescription(v string) *RepositoryUpsert {
+	u.Set(repository.FieldDescription, v)
+	return u
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateDescription() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldDescription)
+	return u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *RepositoryUpsert) ClearDescription() *RepositoryUpsert {
+	u.SetNull(repository.FieldDescription)
+	return u
+}
+
+// SetHTMLURL sets the "html_url" field.
+func (u *RepositoryUpsert) SetHTMLURL(v string) *RepositoryUpsert {
+	u.Set(repository.FieldHTMLURL, v)
+	return u
+}
+
+// UpdateHTMLURL sets the "html_url" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateHTMLURL() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldHTMLURL)
+	return u
+}
+
+// SetLanguage sets the "language" field.
+func (u *RepositoryUpsert) SetLanguage(v string) *RepositoryUpsert {
+	u.Set(repository.FieldLanguage, v)
+	return u
+}
+
+// UpdateLanguage sets the "language" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateLanguage() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldLanguage)
+	return u
+}
+
+// ClearLanguage clears the value of the "language" field.
+func (u *RepositoryUpsert) ClearLanguage() *RepositoryUpsert {
+	u.SetNull(repository.FieldLanguage)
+	return u
+}
+
+// SetDefaultBranch sets the "default_branch" field.
+func (u *RepositoryUpsert) SetDefaultBranch(v string) *RepositoryUpsert {
+	u.Set(repository.FieldDefaultBranch, v)
+	return u
+}
+
+// UpdateDefaultBranch sets the "default_branch" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateDefaultBranch() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldDefaultBranch)
+	return u
+}
+
+// SetLatestCommitSha sets the "latest_commit_sha" field.
+func (u *RepositoryUpsert) SetLatestCommitSha(v string) *RepositoryUpsert {
+	u.Set(repository.FieldLatestCommitSha, v)
+	return u
+}
+
+// UpdateLatestCommitSha sets the "latest_commit_sha" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateLatestCommitSha() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldLatestCommitSha)
+	return u
+}
+
+// ClearLatestCommitSha clears the value of the "latest_commit_sha" field.
+func (u *RepositoryUpsert) ClearLatestCommitSha() *RepositoryUpsert {
+	u.SetNull(repository.FieldLatestCommitSha)
+	return u
+}
+
+// SetLatestCommitMessage sets the "latest_commit_message" field.
+func (u *RepositoryUpsert) SetLatestCommitMessage(v string) *RepositoryUpsert {
+	u.Set(repository.FieldLatestCommitMessage, v)
+	return u
+}
+
+// UpdateLatestCommitMessage sets the "latest_commit_message" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateLatestCommitMessage() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldLatestCommitMessage)
+	return u
+}
+
+// ClearLatestCommitMessage clears the value of the "latest_commit_message" field.
+func (u *RepositoryUpsert) ClearLatestCommitMessage() *RepositoryUpsert {
+	u.SetNull(repository.FieldLatestCommitMessage)
+	return u
+}
+
+// SetLatestCommitDate sets the "latest_commit_date" field.
+func (u *RepositoryUpsert) SetLatestCommitDate(v time.Time) *RepositoryUpsert {
+	u.Set(repository.FieldLatestCommitDate, v)
+	return u
+}
+
+// UpdateLatestCommitDate sets the "latest_commit_date" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateLatestCommitDate() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldLatestCommitDate)
+	return u
+}
+
+// ClearLatestCommitDate clears the value of the "latest_commit_date" field.
+func (u *RepositoryUpsert) ClearLatestCommitDate() *RepositoryUpsert {
+	u.SetNull(repository.FieldLatestCommitDate)
+	return u
+}
+
+// SetLatestReleaseTag sets the "latest_release_tag" field.
+func (u *RepositoryUpsert) SetLatestReleaseTag(v string) *RepositoryUpsert {
+	u.Set(repository.FieldLatestReleaseTag, v)
+	return u
+}
+
+// UpdateLatestReleaseTag sets the "latest_release_tag" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateLatestReleaseTag() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldLatestReleaseTag)
+	return u
+}
+
+// ClearLatestReleaseTag clears the value of the "latest_release_tag" field.
+func (u *RepositoryUpsert) ClearLatestReleaseTag() *RepositoryUpsert {
+	u.SetNull(repository.FieldLatestReleaseTag)
+	return u
+}
+
+// SetLatestReleaseName sets the "latest_release_name" field.
+func (u *RepositoryUpsert) SetLatestReleaseName(v string) *RepositoryUpsert {
+	u.Set(repository.FieldLatestReleaseName, v)
+	return u
+}
+
+// UpdateLatestReleaseName sets the "latest_release_name" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateLatestReleaseName() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldLatestReleaseName)
+	return u
+}
+
+// ClearLatestReleaseName clears the value of the "latest_release_name" field.
+func (u *RepositoryUpsert) ClearLatestReleaseName() *RepositoryUpsert {
+	u.SetNull(repository.FieldLatestReleaseName)
+	return u
+}
+
+// SetLatestReleaseDate sets the "latest_release_date" field.
+func (u *RepositoryUpsert) SetLatestReleaseDate(v time.Time) *RepositoryUpsert {
+	u.Set(repository.FieldLatestReleaseDate, v)
+	return u
+}
+
+// UpdateLatestReleaseDate sets the "latest_release_date" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateLatestReleaseDate() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldLatestReleaseDate)
+	return u
+}
+
+// ClearLatestReleaseDate clears the value of the "latest_release_date" field.
+func (u *RepositoryUpsert) ClearLatestReleaseDate() *RepositoryUpsert {
+	u.SetNull(repository.FieldLatestReleaseDate)
+	return u
+}
+
+// SetWorkflowStatus sets the "workflow_status" field.
+func (u *RepositoryUpsert) SetWorkflowStatus(v string) *RepositoryUpsert {
+	u.Set(repository.FieldWorkflowStatus, v)
+	return u
+}
+
+// UpdateWorkflowStatus sets the "workflow_status" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateWorkflowStatus() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldWorkflowStatus)
+	return u
+}
+
+// ClearWorkflowStatus clears the value of the "workflow_status" field.
+func (u *RepositoryUpsert) ClearWorkflowStatus() *RepositoryUpsert {
+	u.SetNull(repository.FieldWorkflowStatus)
+	return u
+}
+
+// SetWorkflowRunID sets the "workflow_run_id" field.
+func (u *RepositoryUpsert) SetWorkflowRunID(v int64) *RepositoryUpsert {
+	u.Set(repository.FieldWorkflowRunID, v)
+	return u
+}
+
+// UpdateWorkflowRunID sets the "workflow_run_id" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateWorkflowRunID() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldWorkflowRunID)
+	return u
+}
+
+// AddWorkflowRunID adds v to the "workflow_run_id" field.
+func (u *RepositoryUpsert) AddWorkflowRunID(v int64) *RepositoryUpsert {
+	u.Add(repository.FieldWorkflowRunID, v)
+	return u
+}
+
+// ClearWorkflowRunID clears the value of the "workflow_run_id" field.
+func (u *RepositoryUpsert) ClearWorkflowRunID() *RepositoryUpsert {
+	u.SetNull(repository.FieldWorkflowRunID)
+	return u
+}
+
+// SetTotalCommitsFetched sets the "total_commits_fetched" field.
+func (u *RepositoryUpsert) SetTotalCommitsFetched(v int) *RepositoryUpsert {
+	u.Set(repository.FieldTotalCommitsFetched, v)
+	return u
+}
+
+// UpdateTotalCommitsFetched sets the "total_commits_fetched" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateTotalCommitsFetched() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldTotalCommitsFetched)
+	return u
+}
+
+// AddTotalCommitsFetched adds v to the "total_commits_fetched" field.
+func (u *RepositoryUpsert) AddTotalCommitsFetched(v int) *RepositoryUpsert {
+	u.Add(repository.FieldTotalCommitsFetched, v)
+	return u
+}
+
+// ClearTotalCommitsFetched clears the value of the "total_commits_fetched" field.
+func (u *RepositoryUpsert) ClearTotalCommitsFetched() *RepositoryUpsert {
+	u.SetNull(repository.FieldTotalCommitsFetched)
+	return u
+}
+
+// SetFeatCount sets the "feat_count" field.
+func (u *RepositoryUpsert) SetFeatCount(v int) *RepositoryUpsert {
+	u.Set(repository.FieldFeatCount, v)
+	return u
+}
+
+// UpdateFeatCount sets the "feat_count" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateFeatCount() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldFeatCount)
+	return u
+}
+
+// AddFeatCount adds v to the "feat_count" field.
+func (u *RepositoryUpsert) AddFeatCount(v int) *RepositoryUpsert {
+	u.Add(repository.FieldFeatCount, v)
+	return u
+}
+
+// ClearFeatCount clears the value of the "feat_count" field.
+func (u *RepositoryUpsert) ClearFeatCount() *RepositoryUpsert {
+	u.SetNull(repository.FieldFeatCount)
+	return u
+}
+
+// SetFixCount sets the "fix_count" field.
+func (u *RepositoryUpsert) SetFixCount(v int) *RepositoryUpsert {
+	u.Set(repository.FieldFixCount, v)
+	return u
+}
+
+// UpdateFixCount sets the "fix_count" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateFixCount() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldFixCount)
+	return u
+}
+
+// AddFixCount adds v to the "fix_count" field.
+func (u *RepositoryUpsert) AddFixCount(v int) *RepositoryUpsert {
+	u.Add(repository.FieldFixCount, v)
+	return u
+}
+
+// ClearFixCount clears the value of the "fix_count" field.
+func (u *RepositoryUpsert) ClearFixCount() *RepositoryUpsert {
+	u.SetNull(repository.FieldFixCount)
+	return u
+}
+
+// SetDocsCount sets the "docs_count" field.
+func (u *RepositoryUpsert) SetDocsCount(v int) *RepositoryUpsert {
+	u.Set(repository.FieldDocsCount, v)
+	return u
+}
+
+// UpdateDocsCount sets the "docs_count" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateDocsCount() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldDocsCount)
+	return u
+}
+
+// AddDocsCount adds v to the "docs_count" field.
+func (u *RepositoryUpsert) AddDocsCount(v int) *RepositoryUpsert {
+	u.Add(repository.FieldDocsCount, v)
+	return u
+}
+
+// ClearDocsCount clears the value of the "docs_count" field.
+func (u *RepositoryUpsert) ClearDocsCount() *RepositoryUpsert {
+	u.SetNull(repository.FieldDocsCount)
+	return u
+}
+
+// SetChoreCount sets the "chore_count" field.
+func (u *RepositoryUpsert) SetChoreCount(v int) *RepositoryUpsert {
+	u.Set(repository.FieldChoreCount, v)
+	return u
+}
+
+// UpdateChoreCount sets the "chore_count" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateChoreCount() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldChoreCount)
+	return u
+}
+
+// AddChoreCount adds v to the "chore_count" field.
+func (u *RepositoryUpsert) AddChoreCount(v int) *RepositoryUpsert {
+	u.Add(repository.FieldChoreCount, v)
+	return u
+}
+
+// ClearChoreCount clears the value of the "chore_count" field.
+func (u *RepositoryUpsert) ClearChoreCount() *RepositoryUpsert {
+	u.SetNull(repository.FieldChoreCount)
+	return u
+}
+
+// SetOtherCommitCount sets the "other_commit_count" field.
+func (u *RepositoryUpsert) SetOtherCommitCount(v int) *RepositoryUpsert {
+	u.Set(repository.FieldOtherCommitCount, v)
+	return u
+}
+
+// UpdateOtherCommitCount sets the "other_commit_count" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateOtherCommitCount() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldOtherCommitCount)
+	return u
+}
+
+// AddOtherCommitCount adds v to the "other_commit_count" field.
+func (u *RepositoryUpsert) AddOtherCommitCount(v int) *RepositoryUpsert {
+	u.Add(repository.FieldOtherCommitCount, v)
+	return u
+}
+
+// ClearOtherCommitCount clears the value of the "other_commit_count" field.
+func (u *RepositoryUpsert) ClearOtherCommitCount() *RepositoryUpsert {
+	u.SetNull(repository.FieldOtherCommitCount)
+	return u
+}
+
+// SetReleaseCount sets the "release_count" field.
+func (u *RepositoryUpsert) SetReleaseCount(v int) *RepositoryUpsert {
+	u.Set(repository.FieldReleaseCount, v)
+	return u
+}
+
+// UpdateReleaseCount sets the "release_count" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateReleaseCount() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldReleaseCount)
+	return u
+}
+
+// AddReleaseCount adds v to the "release_count" field.
+func (u *RepositoryUpsert) AddReleaseCount(v int) *RepositoryUpsert {
+	u.Add(repository.FieldReleaseCount, v)
+	return u
+}
+
+// ClearReleaseCount clears the value of the "release_count" field.
+func (u *RepositoryUpsert) ClearReleaseCount() *RepositoryUpsert {
+	u.SetNull(repository.FieldReleaseCount)
+	return u
+}
+
+// SetAvgLeadTimeHours sets the "avg_lead_time_hours" field.
+func (u *RepositoryUpsert) SetAvgLeadTimeHours(v float64) *RepositoryUpsert {
+	u.Set(repository.FieldAvgLeadTimeHours, v)
+	return u
+}
+
+// UpdateAvgLeadTimeHours sets the "avg_lead_time_hours" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateAvgLeadTimeHours() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldAvgLeadTimeHours)
+	return u
+}
+
+// AddAvgLeadTimeHours adds v to the "avg_lead_time_hours" field.
+func (u *RepositoryUpsert) AddAvgLeadTimeHours(v float64) *RepositoryUpsert {
+	u.Add(repository.FieldAvgLeadTimeHours, v)
+	return u
+}
+
+// ClearAvgLeadTimeHours clears the value of the "avg_lead_time_hours" field.
+func (u *RepositoryUpsert) ClearAvgLeadTimeHours() *RepositoryUpsert {
+	u.SetNull(repository.FieldAvgLeadTimeHours)
+	return u
+}
+
+// SetWorkflowSuccessCount sets the "workflow_success_count" field.
+func (u *RepositoryUpsert) SetWorkflowSuccessCount(v int) *RepositoryUpsert {
+	u.Set(repository.FieldWorkflowSuccessCount, v)
+	return u
+}
+
+// UpdateWorkflowSuccessCount sets the "workflow_success_count" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateWorkflowSuccessCount() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldWorkflowSuccessCount)
+	return u
+}
+
+// AddWorkflowSuccessCount adds v to the "workflow_success_count" field.
+func (u *RepositoryUpsert) AddWorkflowSuccessCount(v int) *RepositoryUpsert {
+	u.Add(repository.FieldWorkflowSuccessCount, v)
+	return u
+}
+
+// ClearWorkflowSuccessCount clears the value of the "workflow_success_count" field.
+func (u *RepositoryUpsert) ClearWorkflowSuccessCount() *RepositoryUpsert {
+	u.SetNull(repository.FieldWorkflowSuccessCount)
+	return u
+}
+
+// SetWorkflowFailureCount sets the "workflow_failure_count" field.
+func (u *RepositoryUpsert) SetWorkflowFailureCount(v int) *RepositoryUpsert {
+	u.Set(repository.FieldWorkflowFailureCount, v)
+	return u
+}
+
+// UpdateWorkflowFailureCount sets the "workflow_failure_count" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateWorkflowFailureCount() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldWorkflowFailureCount)
+	return u
+}
+
+// AddWorkflowFailureCount adds v to the "workflow_failure_count" field.
+func (u *RepositoryUpsert) AddWorkflowFailureCount(v int) *RepositoryUpsert {
+	u.Add(repository.FieldWorkflowFailureCount, v)
+	return u
+}
+
+// ClearWorkflowFailureCount clears the value of the "workflow_failure_count" field.
+func (u *RepositoryUpsert) ClearWorkflowFailureCount() *RepositoryUpsert {
+	u.SetNull(repository.FieldWorkflowFailureCount)
+	return u
+}
+
+// SetOpenPrCount sets the "open_pr_count" field.
+func (u *RepositoryUpsert) SetOpenPrCount(v int) *RepositoryUpsert {
+	u.Set(repository.FieldOpenPrCount, v)
+	return u
+}
+
+// UpdateOpenPrCount sets the "open_pr_count" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateOpenPrCount() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldOpenPrCount)
+	return u
+}
+
+// AddOpenPrCount adds v to the "open_pr_count" field.
+func (u *RepositoryUpsert) AddOpenPrCount(v int) *RepositoryUpsert {
+	u.Add(repository.FieldOpenPrCount, v)
+	return u
+}
+
+// ClearOpenPrCount clears the value of the "open_pr_count" field.
+func (u *RepositoryUpsert) ClearOpenPrCount() *RepositoryUpsert {
+	u.SetNull(repository.FieldOpenPrCount)
+	return u
+}
+
+// SetPullRequests sets the "pull_requests" field.
+func (u *RepositoryUpsert) SetPullRequests(v string) *RepositoryUpsert {
+	u.Set(repository.FieldPullRequests, v)
+	return u
+}
+
+// UpdatePullRequests sets the "pull_requests" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdatePullRequests() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldPullRequests)
+	return u
+}
+
+// ClearPullRequests clears the value of the "pull_requests" field.
+func (u *RepositoryUpsert) ClearPullRequests() *RepositoryUpsert {
+	u.SetNull(repository.FieldPullRequests)
+	return u
+}
+
+// SetLatestReleaseConclusion sets the "latest_release_conclusion" field.
+func (u *RepositoryUpsert) SetLatestReleaseConclusion(v string) *RepositoryUpsert {
+	u.Set(repository.FieldLatestReleaseConclusion, v)
+	return u
+}
+
+// UpdateLatestReleaseConclusion sets the "latest_release_conclusion" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateLatestReleaseConclusion() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldLatestReleaseConclusion)
+	return u
+}
+
+// ClearLatestReleaseConclusion clears the value of the "latest_release_conclusion" field.
+func (u *RepositoryUpsert) ClearLatestReleaseConclusion() *RepositoryUpsert {
+	u.SetNull(repository.FieldLatestReleaseConclusion)
+	return u
+}
+
+// SetSyncedAt sets the "synced_at" field.
+func (u *RepositoryUpsert) SetSyncedAt(v time.Time) *RepositoryUpsert {
+	u.Set(repository.FieldSyncedAt, v)
+	return u
+}
+
+// UpdateSyncedAt sets the "synced_at" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateSyncedAt() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldSyncedAt)
+	return u
+}
+
+// ClearSyncedAt clears the value of the "synced_at" field.
+func (u *RepositoryUpsert) ClearSyncedAt() *RepositoryUpsert {
+	u.SetNull(repository.FieldSyncedAt)
+	return u
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *RepositoryUpsert) SetCreatedAt(v time.Time) *RepositoryUpsert {
+	u.Set(repository.FieldCreatedAt, v)
+	return u
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateCreatedAt() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldCreatedAt)
+	return u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *RepositoryUpsert) SetUpdatedAt(v time.Time) *RepositoryUpsert {
+	u.Set(repository.FieldUpdatedAt, v)
+	return u
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateUpdatedAt() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldUpdatedAt)
+	return u
+}
+
+// SetProvider sets the "provider" field.
+func (u *RepositoryUpsert) SetProvider(v string) *RepositoryUpsert {
+	u.Set(repository.FieldProvider, v)
+	return u
+}
+
+// UpdateProvider sets the "provider" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateProvider() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldProvider)
+	return u
+}
+
+// SetForgejoID sets the "forgejo_id" field.
+func (u *RepositoryUpsert) SetForgejoID(v int64) *RepositoryUpsert {
+	u.Set(repository.FieldForgejoID, v)
+	return u
+}
+
+// UpdateForgejoID sets the "forgejo_id" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateForgejoID() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldForgejoID)
+	return u
+}
+
+// AddForgejoID adds v to the "forgejo_id" field.
+func (u *RepositoryUpsert) AddForgejoID(v int64) *RepositoryUpsert {
+	u.Add(repository.FieldForgejoID, v)
+	return u
+}
+
+// ClearForgejoID clears the value of the "forgejo_id" field.
+func (u *RepositoryUpsert) ClearForgejoID() *RepositoryUpsert {
+	u.SetNull(repository.FieldForgejoID)
+	return u
+}
+
+// SetForgejoOwner sets the "forgejo_owner" field.
+func (u *RepositoryUpsert) SetForgejoOwner(v string) *RepositoryUpsert {
+	u.Set(repository.FieldForgejoOwner, v)
+	return u
+}
+
+// UpdateForgejoOwner sets the "forgejo_owner" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateForgejoOwner() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldForgejoOwner)
+	return u
+}
+
+// ClearForgejoOwner clears the value of the "forgejo_owner" field.
+func (u *RepositoryUpsert) ClearForgejoOwner() *RepositoryUpsert {
+	u.SetNull(repository.FieldForgejoOwner)
+	return u
+}
+
+// SetForgejoName sets the "forgejo_name" field.
+func (u *RepositoryUpsert) SetForgejoName(v string) *RepositoryUpsert {
+	u.Set(repository.FieldForgejoName, v)
+	return u
+}
+
+// UpdateForgejoName sets the "forgejo_name" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateForgejoName() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldForgejoName)
+	return u
+}
+
+// ClearForgejoName clears the value of the "forgejo_name" field.
+func (u *RepositoryUpsert) ClearForgejoName() *RepositoryUpsert {
+	u.SetNull(repository.FieldForgejoName)
+	return u
+}
+
+// SetForgejoFullName sets the "forgejo_full_name" field.
+func (u *RepositoryUpsert) SetForgejoFullName(v string) *RepositoryUpsert {
+	u.Set(repository.FieldForgejoFullName, v)
+	return u
+}
+
+// UpdateForgejoFullName sets the "forgejo_full_name" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateForgejoFullName() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldForgejoFullName)
+	return u
+}
+
+// ClearForgejoFullName clears the value of the "forgejo_full_name" field.
+func (u *RepositoryUpsert) ClearForgejoFullName() *RepositoryUpsert {
+	u.SetNull(repository.FieldForgejoFullName)
+	return u
+}
+
+// SetForgejoHTMLURL sets the "forgejo_html_url" field.
+func (u *RepositoryUpsert) SetForgejoHTMLURL(v string) *RepositoryUpsert {
+	u.Set(repository.FieldForgejoHTMLURL, v)
+	return u
+}
+
+// UpdateForgejoHTMLURL sets the "forgejo_html_url" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateForgejoHTMLURL() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldForgejoHTMLURL)
+	return u
+}
+
+// ClearForgejoHTMLURL clears the value of the "forgejo_html_url" field.
+func (u *RepositoryUpsert) ClearForgejoHTMLURL() *RepositoryUpsert {
+	u.SetNull(repository.FieldForgejoHTMLURL)
+	return u
+}
+
+// SetForgejoURL sets the "forgejo_url" field.
+func (u *RepositoryUpsert) SetForgejoURL(v string) *RepositoryUpsert {
+	u.Set(repository.FieldForgejoURL, v)
+	return u
+}
+
+// UpdateForgejoURL sets the "forgejo_url" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateForgejoURL() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldForgejoURL)
+	return u
+}
+
+// ClearForgejoURL clears the value of the "forgejo_url" field.
+func (u *RepositoryUpsert) ClearForgejoURL() *RepositoryUpsert {
+	u.SetNull(repository.FieldForgejoURL)
+	return u
+}
+
+// SetBackfillStatus sets the "backfill_status" field.
+func (u *RepositoryUpsert) SetBackfillStatus(v string) *RepositoryUpsert {
+	u.Set(repository.FieldBackfillStatus, v)
+	return u
+}
+
+// UpdateBackfillStatus sets the "backfill_status" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateBackfillStatus() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldBackfillStatus)
+	return u
+}
+
+// ClearBackfillStatus clears the value of the "backfill_status" field.
+func (u *RepositoryUpsert) ClearBackfillStatus() *RepositoryUpsert {
+	u.SetNull(repository.FieldBackfillStatus)
+	return u
+}
+
+// SetBackfillCursorPage sets the "backfill_cursor_page" field.
+func (u *RepositoryUpsert) SetBackfillCursorPage(v int) *RepositoryUpsert {
+	u.Set(repository.FieldBackfillCursorPage, v)
+	return u
+}
+
+// UpdateBackfillCursorPage sets the "backfill_cursor_page" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateBackfillCursorPage() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldBackfillCursorPage)
+	return u
+}
+
+// AddBackfillCursorPage adds v to the "backfill_cursor_page" field.
+func (u *RepositoryUpsert) AddBackfillCursorPage(v int) *RepositoryUpsert {
+	u.Add(repository.FieldBackfillCursorPage, v)
+	return u
+}
+
+// ClearBackfillCursorPage clears the value of the "backfill_cursor_page" field.
+func (u *RepositoryUpsert) ClearBackfillCursorPage() *RepositoryUpsert {
+	u.SetNull(repository.FieldBackfillCursorPage)
+	return u
+}
+
+// SetBackfillOldestDate sets the "backfill_oldest_date" field.
+func (u *RepositoryUpsert) SetBackfillOldestDate(v time.Time) *RepositoryUpsert {
+	u.Set(repository.FieldBackfillOldestDate, v)
+	return u
+}
+
+// UpdateBackfillOldestDate sets the "backfill_oldest_date" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateBackfillOldestDate() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldBackfillOldestDate)
+	return u
+}
+
+// ClearBackfillOldestDate clears the value of the "backfill_oldest_date" field.
+func (u *RepositoryUpsert) ClearBackfillOldestDate() *RepositoryUpsert {
+	u.SetNull(repository.FieldBackfillOldestDate)
+	return u
+}
+
+// SetBackfillError sets the "backfill_error" field.
+func (u *RepositoryUpsert) SetBackfillError(v string) *RepositoryUpsert {
+	u.Set(repository.FieldBackfillError, v)
+	return u
+}
+
+// UpdateBackfillError sets the "backfill_error" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateBackfillError() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldBackfillError)
+	return u
+}
+
+// ClearBackfillError clears the value of the "backfill_error" field.
+func (u *RepositoryUpsert) ClearBackfillError() *RepositoryUpsert {
+	u.SetNull(repository.FieldBackfillError)
+	return u
+}
+
+// SetBackfillUpdatedAt sets the "backfill_updated_at" field.
+func (u *RepositoryUpsert) SetBackfillUpdatedAt(v time.Time) *RepositoryUpsert {
+	u.Set(repository.FieldBackfillUpdatedAt, v)
+	return u
+}
+
+// UpdateBackfillUpdatedAt sets the "backfill_updated_at" field to the value that was provided on create.
+func (u *RepositoryUpsert) UpdateBackfillUpdatedAt() *RepositoryUpsert {
+	u.SetExcluded(repository.FieldBackfillUpdatedAt)
+	return u
+}
+
+// ClearBackfillUpdatedAt clears the value of the "backfill_updated_at" field.
+func (u *RepositoryUpsert) ClearBackfillUpdatedAt() *RepositoryUpsert {
+	u.SetNull(repository.FieldBackfillUpdatedAt)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// Using this option is equivalent to using:
+//
+//	client.Repository.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *RepositoryUpsertOne) UpdateNewValues() *RepositoryUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Repository.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
+func (u *RepositoryUpsertOne) Ignore() *RepositoryUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *RepositoryUpsertOne) DoNothing() *RepositoryUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the RepositoryCreate.OnConflict
+// documentation for more info.
+func (u *RepositoryUpsertOne) Update(set func(*RepositoryUpsert)) *RepositoryUpsertOne {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&RepositoryUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetGithubID sets the "github_id" field.
+func (u *RepositoryUpsertOne) SetGithubID(v int64) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetGithubID(v)
+	})
+}
+
+// AddGithubID adds v to the "github_id" field.
+func (u *RepositoryUpsertOne) AddGithubID(v int64) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddGithubID(v)
+	})
+}
+
+// UpdateGithubID sets the "github_id" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateGithubID() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateGithubID()
+	})
+}
+
+// SetOwner sets the "owner" field.
+func (u *RepositoryUpsertOne) SetOwner(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetOwner(v)
+	})
+}
+
+// UpdateOwner sets the "owner" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateOwner() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateOwner()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *RepositoryUpsertOne) SetName(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateName() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetFullName sets the "full_name" field.
+func (u *RepositoryUpsertOne) SetFullName(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetFullName(v)
+	})
+}
+
+// UpdateFullName sets the "full_name" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateFullName() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateFullName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *RepositoryUpsertOne) SetDescription(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateDescription() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *RepositoryUpsertOne) ClearDescription() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearDescription()
+	})
+}
+
+// SetHTMLURL sets the "html_url" field.
+func (u *RepositoryUpsertOne) SetHTMLURL(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetHTMLURL(v)
+	})
+}
+
+// UpdateHTMLURL sets the "html_url" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateHTMLURL() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateHTMLURL()
+	})
+}
+
+// SetLanguage sets the "language" field.
+func (u *RepositoryUpsertOne) SetLanguage(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLanguage(v)
+	})
+}
+
+// UpdateLanguage sets the "language" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateLanguage() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLanguage()
+	})
+}
+
+// ClearLanguage clears the value of the "language" field.
+func (u *RepositoryUpsertOne) ClearLanguage() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLanguage()
+	})
+}
+
+// SetDefaultBranch sets the "default_branch" field.
+func (u *RepositoryUpsertOne) SetDefaultBranch(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetDefaultBranch(v)
+	})
+}
+
+// UpdateDefaultBranch sets the "default_branch" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateDefaultBranch() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateDefaultBranch()
+	})
+}
+
+// SetLatestCommitSha sets the "latest_commit_sha" field.
+func (u *RepositoryUpsertOne) SetLatestCommitSha(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestCommitSha(v)
+	})
+}
+
+// UpdateLatestCommitSha sets the "latest_commit_sha" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateLatestCommitSha() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestCommitSha()
+	})
+}
+
+// ClearLatestCommitSha clears the value of the "latest_commit_sha" field.
+func (u *RepositoryUpsertOne) ClearLatestCommitSha() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestCommitSha()
+	})
+}
+
+// SetLatestCommitMessage sets the "latest_commit_message" field.
+func (u *RepositoryUpsertOne) SetLatestCommitMessage(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestCommitMessage(v)
+	})
+}
+
+// UpdateLatestCommitMessage sets the "latest_commit_message" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateLatestCommitMessage() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestCommitMessage()
+	})
+}
+
+// ClearLatestCommitMessage clears the value of the "latest_commit_message" field.
+func (u *RepositoryUpsertOne) ClearLatestCommitMessage() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestCommitMessage()
+	})
+}
+
+// SetLatestCommitDate sets the "latest_commit_date" field.
+func (u *RepositoryUpsertOne) SetLatestCommitDate(v time.Time) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestCommitDate(v)
+	})
+}
+
+// UpdateLatestCommitDate sets the "latest_commit_date" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateLatestCommitDate() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestCommitDate()
+	})
+}
+
+// ClearLatestCommitDate clears the value of the "latest_commit_date" field.
+func (u *RepositoryUpsertOne) ClearLatestCommitDate() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestCommitDate()
+	})
+}
+
+// SetLatestReleaseTag sets the "latest_release_tag" field.
+func (u *RepositoryUpsertOne) SetLatestReleaseTag(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestReleaseTag(v)
+	})
+}
+
+// UpdateLatestReleaseTag sets the "latest_release_tag" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateLatestReleaseTag() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestReleaseTag()
+	})
+}
+
+// ClearLatestReleaseTag clears the value of the "latest_release_tag" field.
+func (u *RepositoryUpsertOne) ClearLatestReleaseTag() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestReleaseTag()
+	})
+}
+
+// SetLatestReleaseName sets the "latest_release_name" field.
+func (u *RepositoryUpsertOne) SetLatestReleaseName(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestReleaseName(v)
+	})
+}
+
+// UpdateLatestReleaseName sets the "latest_release_name" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateLatestReleaseName() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestReleaseName()
+	})
+}
+
+// ClearLatestReleaseName clears the value of the "latest_release_name" field.
+func (u *RepositoryUpsertOne) ClearLatestReleaseName() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestReleaseName()
+	})
+}
+
+// SetLatestReleaseDate sets the "latest_release_date" field.
+func (u *RepositoryUpsertOne) SetLatestReleaseDate(v time.Time) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestReleaseDate(v)
+	})
+}
+
+// UpdateLatestReleaseDate sets the "latest_release_date" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateLatestReleaseDate() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestReleaseDate()
+	})
+}
+
+// ClearLatestReleaseDate clears the value of the "latest_release_date" field.
+func (u *RepositoryUpsertOne) ClearLatestReleaseDate() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestReleaseDate()
+	})
+}
+
+// SetWorkflowStatus sets the "workflow_status" field.
+func (u *RepositoryUpsertOne) SetWorkflowStatus(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetWorkflowStatus(v)
+	})
+}
+
+// UpdateWorkflowStatus sets the "workflow_status" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateWorkflowStatus() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateWorkflowStatus()
+	})
+}
+
+// ClearWorkflowStatus clears the value of the "workflow_status" field.
+func (u *RepositoryUpsertOne) ClearWorkflowStatus() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearWorkflowStatus()
+	})
+}
+
+// SetWorkflowRunID sets the "workflow_run_id" field.
+func (u *RepositoryUpsertOne) SetWorkflowRunID(v int64) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetWorkflowRunID(v)
+	})
+}
+
+// AddWorkflowRunID adds v to the "workflow_run_id" field.
+func (u *RepositoryUpsertOne) AddWorkflowRunID(v int64) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddWorkflowRunID(v)
+	})
+}
+
+// UpdateWorkflowRunID sets the "workflow_run_id" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateWorkflowRunID() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateWorkflowRunID()
+	})
+}
+
+// ClearWorkflowRunID clears the value of the "workflow_run_id" field.
+func (u *RepositoryUpsertOne) ClearWorkflowRunID() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearWorkflowRunID()
+	})
+}
+
+// SetTotalCommitsFetched sets the "total_commits_fetched" field.
+func (u *RepositoryUpsertOne) SetTotalCommitsFetched(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetTotalCommitsFetched(v)
+	})
+}
+
+// AddTotalCommitsFetched adds v to the "total_commits_fetched" field.
+func (u *RepositoryUpsertOne) AddTotalCommitsFetched(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddTotalCommitsFetched(v)
+	})
+}
+
+// UpdateTotalCommitsFetched sets the "total_commits_fetched" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateTotalCommitsFetched() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateTotalCommitsFetched()
+	})
+}
+
+// ClearTotalCommitsFetched clears the value of the "total_commits_fetched" field.
+func (u *RepositoryUpsertOne) ClearTotalCommitsFetched() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearTotalCommitsFetched()
+	})
+}
+
+// SetFeatCount sets the "feat_count" field.
+func (u *RepositoryUpsertOne) SetFeatCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetFeatCount(v)
+	})
+}
+
+// AddFeatCount adds v to the "feat_count" field.
+func (u *RepositoryUpsertOne) AddFeatCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddFeatCount(v)
+	})
+}
+
+// UpdateFeatCount sets the "feat_count" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateFeatCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateFeatCount()
+	})
+}
+
+// ClearFeatCount clears the value of the "feat_count" field.
+func (u *RepositoryUpsertOne) ClearFeatCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearFeatCount()
+	})
+}
+
+// SetFixCount sets the "fix_count" field.
+func (u *RepositoryUpsertOne) SetFixCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetFixCount(v)
+	})
+}
+
+// AddFixCount adds v to the "fix_count" field.
+func (u *RepositoryUpsertOne) AddFixCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddFixCount(v)
+	})
+}
+
+// UpdateFixCount sets the "fix_count" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateFixCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateFixCount()
+	})
+}
+
+// ClearFixCount clears the value of the "fix_count" field.
+func (u *RepositoryUpsertOne) ClearFixCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearFixCount()
+	})
+}
+
+// SetDocsCount sets the "docs_count" field.
+func (u *RepositoryUpsertOne) SetDocsCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetDocsCount(v)
+	})
+}
+
+// AddDocsCount adds v to the "docs_count" field.
+func (u *RepositoryUpsertOne) AddDocsCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddDocsCount(v)
+	})
+}
+
+// UpdateDocsCount sets the "docs_count" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateDocsCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateDocsCount()
+	})
+}
+
+// ClearDocsCount clears the value of the "docs_count" field.
+func (u *RepositoryUpsertOne) ClearDocsCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearDocsCount()
+	})
+}
+
+// SetChoreCount sets the "chore_count" field.
+func (u *RepositoryUpsertOne) SetChoreCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetChoreCount(v)
+	})
+}
+
+// AddChoreCount adds v to the "chore_count" field.
+func (u *RepositoryUpsertOne) AddChoreCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddChoreCount(v)
+	})
+}
+
+// UpdateChoreCount sets the "chore_count" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateChoreCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateChoreCount()
+	})
+}
+
+// ClearChoreCount clears the value of the "chore_count" field.
+func (u *RepositoryUpsertOne) ClearChoreCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearChoreCount()
+	})
+}
+
+// SetOtherCommitCount sets the "other_commit_count" field.
+func (u *RepositoryUpsertOne) SetOtherCommitCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetOtherCommitCount(v)
+	})
+}
+
+// AddOtherCommitCount adds v to the "other_commit_count" field.
+func (u *RepositoryUpsertOne) AddOtherCommitCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddOtherCommitCount(v)
+	})
+}
+
+// UpdateOtherCommitCount sets the "other_commit_count" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateOtherCommitCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateOtherCommitCount()
+	})
+}
+
+// ClearOtherCommitCount clears the value of the "other_commit_count" field.
+func (u *RepositoryUpsertOne) ClearOtherCommitCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearOtherCommitCount()
+	})
+}
+
+// SetReleaseCount sets the "release_count" field.
+func (u *RepositoryUpsertOne) SetReleaseCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetReleaseCount(v)
+	})
+}
+
+// AddReleaseCount adds v to the "release_count" field.
+func (u *RepositoryUpsertOne) AddReleaseCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddReleaseCount(v)
+	})
+}
+
+// UpdateReleaseCount sets the "release_count" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateReleaseCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateReleaseCount()
+	})
+}
+
+// ClearReleaseCount clears the value of the "release_count" field.
+func (u *RepositoryUpsertOne) ClearReleaseCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearReleaseCount()
+	})
+}
+
+// SetAvgLeadTimeHours sets the "avg_lead_time_hours" field.
+func (u *RepositoryUpsertOne) SetAvgLeadTimeHours(v float64) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetAvgLeadTimeHours(v)
+	})
+}
+
+// AddAvgLeadTimeHours adds v to the "avg_lead_time_hours" field.
+func (u *RepositoryUpsertOne) AddAvgLeadTimeHours(v float64) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddAvgLeadTimeHours(v)
+	})
+}
+
+// UpdateAvgLeadTimeHours sets the "avg_lead_time_hours" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateAvgLeadTimeHours() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateAvgLeadTimeHours()
+	})
+}
+
+// ClearAvgLeadTimeHours clears the value of the "avg_lead_time_hours" field.
+func (u *RepositoryUpsertOne) ClearAvgLeadTimeHours() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearAvgLeadTimeHours()
+	})
+}
+
+// SetWorkflowSuccessCount sets the "workflow_success_count" field.
+func (u *RepositoryUpsertOne) SetWorkflowSuccessCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetWorkflowSuccessCount(v)
+	})
+}
+
+// AddWorkflowSuccessCount adds v to the "workflow_success_count" field.
+func (u *RepositoryUpsertOne) AddWorkflowSuccessCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddWorkflowSuccessCount(v)
+	})
+}
+
+// UpdateWorkflowSuccessCount sets the "workflow_success_count" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateWorkflowSuccessCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateWorkflowSuccessCount()
+	})
+}
+
+// ClearWorkflowSuccessCount clears the value of the "workflow_success_count" field.
+func (u *RepositoryUpsertOne) ClearWorkflowSuccessCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearWorkflowSuccessCount()
+	})
+}
+
+// SetWorkflowFailureCount sets the "workflow_failure_count" field.
+func (u *RepositoryUpsertOne) SetWorkflowFailureCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetWorkflowFailureCount(v)
+	})
+}
+
+// AddWorkflowFailureCount adds v to the "workflow_failure_count" field.
+func (u *RepositoryUpsertOne) AddWorkflowFailureCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddWorkflowFailureCount(v)
+	})
+}
+
+// UpdateWorkflowFailureCount sets the "workflow_failure_count" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateWorkflowFailureCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateWorkflowFailureCount()
+	})
+}
+
+// ClearWorkflowFailureCount clears the value of the "workflow_failure_count" field.
+func (u *RepositoryUpsertOne) ClearWorkflowFailureCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearWorkflowFailureCount()
+	})
+}
+
+// SetOpenPrCount sets the "open_pr_count" field.
+func (u *RepositoryUpsertOne) SetOpenPrCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetOpenPrCount(v)
+	})
+}
+
+// AddOpenPrCount adds v to the "open_pr_count" field.
+func (u *RepositoryUpsertOne) AddOpenPrCount(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddOpenPrCount(v)
+	})
+}
+
+// UpdateOpenPrCount sets the "open_pr_count" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateOpenPrCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateOpenPrCount()
+	})
+}
+
+// ClearOpenPrCount clears the value of the "open_pr_count" field.
+func (u *RepositoryUpsertOne) ClearOpenPrCount() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearOpenPrCount()
+	})
+}
+
+// SetPullRequests sets the "pull_requests" field.
+func (u *RepositoryUpsertOne) SetPullRequests(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetPullRequests(v)
+	})
+}
+
+// UpdatePullRequests sets the "pull_requests" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdatePullRequests() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdatePullRequests()
+	})
+}
+
+// ClearPullRequests clears the value of the "pull_requests" field.
+func (u *RepositoryUpsertOne) ClearPullRequests() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearPullRequests()
+	})
+}
+
+// SetLatestReleaseConclusion sets the "latest_release_conclusion" field.
+func (u *RepositoryUpsertOne) SetLatestReleaseConclusion(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestReleaseConclusion(v)
+	})
+}
+
+// UpdateLatestReleaseConclusion sets the "latest_release_conclusion" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateLatestReleaseConclusion() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestReleaseConclusion()
+	})
+}
+
+// ClearLatestReleaseConclusion clears the value of the "latest_release_conclusion" field.
+func (u *RepositoryUpsertOne) ClearLatestReleaseConclusion() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestReleaseConclusion()
+	})
+}
+
+// SetSyncedAt sets the "synced_at" field.
+func (u *RepositoryUpsertOne) SetSyncedAt(v time.Time) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetSyncedAt(v)
+	})
+}
+
+// UpdateSyncedAt sets the "synced_at" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateSyncedAt() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateSyncedAt()
+	})
+}
+
+// ClearSyncedAt clears the value of the "synced_at" field.
+func (u *RepositoryUpsertOne) ClearSyncedAt() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearSyncedAt()
+	})
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *RepositoryUpsertOne) SetCreatedAt(v time.Time) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateCreatedAt() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *RepositoryUpsertOne) SetUpdatedAt(v time.Time) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateUpdatedAt() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetProvider sets the "provider" field.
+func (u *RepositoryUpsertOne) SetProvider(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetProvider(v)
+	})
+}
+
+// UpdateProvider sets the "provider" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateProvider() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateProvider()
+	})
+}
+
+// SetForgejoID sets the "forgejo_id" field.
+func (u *RepositoryUpsertOne) SetForgejoID(v int64) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoID(v)
+	})
+}
+
+// AddForgejoID adds v to the "forgejo_id" field.
+func (u *RepositoryUpsertOne) AddForgejoID(v int64) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddForgejoID(v)
+	})
+}
+
+// UpdateForgejoID sets the "forgejo_id" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateForgejoID() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoID()
+	})
+}
+
+// ClearForgejoID clears the value of the "forgejo_id" field.
+func (u *RepositoryUpsertOne) ClearForgejoID() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoID()
+	})
+}
+
+// SetForgejoOwner sets the "forgejo_owner" field.
+func (u *RepositoryUpsertOne) SetForgejoOwner(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoOwner(v)
+	})
+}
+
+// UpdateForgejoOwner sets the "forgejo_owner" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateForgejoOwner() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoOwner()
+	})
+}
+
+// ClearForgejoOwner clears the value of the "forgejo_owner" field.
+func (u *RepositoryUpsertOne) ClearForgejoOwner() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoOwner()
+	})
+}
+
+// SetForgejoName sets the "forgejo_name" field.
+func (u *RepositoryUpsertOne) SetForgejoName(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoName(v)
+	})
+}
+
+// UpdateForgejoName sets the "forgejo_name" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateForgejoName() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoName()
+	})
+}
+
+// ClearForgejoName clears the value of the "forgejo_name" field.
+func (u *RepositoryUpsertOne) ClearForgejoName() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoName()
+	})
+}
+
+// SetForgejoFullName sets the "forgejo_full_name" field.
+func (u *RepositoryUpsertOne) SetForgejoFullName(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoFullName(v)
+	})
+}
+
+// UpdateForgejoFullName sets the "forgejo_full_name" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateForgejoFullName() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoFullName()
+	})
+}
+
+// ClearForgejoFullName clears the value of the "forgejo_full_name" field.
+func (u *RepositoryUpsertOne) ClearForgejoFullName() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoFullName()
+	})
+}
+
+// SetForgejoHTMLURL sets the "forgejo_html_url" field.
+func (u *RepositoryUpsertOne) SetForgejoHTMLURL(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoHTMLURL(v)
+	})
+}
+
+// UpdateForgejoHTMLURL sets the "forgejo_html_url" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateForgejoHTMLURL() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoHTMLURL()
+	})
+}
+
+// ClearForgejoHTMLURL clears the value of the "forgejo_html_url" field.
+func (u *RepositoryUpsertOne) ClearForgejoHTMLURL() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoHTMLURL()
+	})
+}
+
+// SetForgejoURL sets the "forgejo_url" field.
+func (u *RepositoryUpsertOne) SetForgejoURL(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoURL(v)
+	})
+}
+
+// UpdateForgejoURL sets the "forgejo_url" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateForgejoURL() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoURL()
+	})
+}
+
+// ClearForgejoURL clears the value of the "forgejo_url" field.
+func (u *RepositoryUpsertOne) ClearForgejoURL() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoURL()
+	})
+}
+
+// SetBackfillStatus sets the "backfill_status" field.
+func (u *RepositoryUpsertOne) SetBackfillStatus(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillStatus(v)
+	})
+}
+
+// UpdateBackfillStatus sets the "backfill_status" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateBackfillStatus() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillStatus()
+	})
+}
+
+// ClearBackfillStatus clears the value of the "backfill_status" field.
+func (u *RepositoryUpsertOne) ClearBackfillStatus() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillStatus()
+	})
+}
+
+// SetBackfillCursorPage sets the "backfill_cursor_page" field.
+func (u *RepositoryUpsertOne) SetBackfillCursorPage(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillCursorPage(v)
+	})
+}
+
+// AddBackfillCursorPage adds v to the "backfill_cursor_page" field.
+func (u *RepositoryUpsertOne) AddBackfillCursorPage(v int) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddBackfillCursorPage(v)
+	})
+}
+
+// UpdateBackfillCursorPage sets the "backfill_cursor_page" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateBackfillCursorPage() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillCursorPage()
+	})
+}
+
+// ClearBackfillCursorPage clears the value of the "backfill_cursor_page" field.
+func (u *RepositoryUpsertOne) ClearBackfillCursorPage() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillCursorPage()
+	})
+}
+
+// SetBackfillOldestDate sets the "backfill_oldest_date" field.
+func (u *RepositoryUpsertOne) SetBackfillOldestDate(v time.Time) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillOldestDate(v)
+	})
+}
+
+// UpdateBackfillOldestDate sets the "backfill_oldest_date" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateBackfillOldestDate() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillOldestDate()
+	})
+}
+
+// ClearBackfillOldestDate clears the value of the "backfill_oldest_date" field.
+func (u *RepositoryUpsertOne) ClearBackfillOldestDate() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillOldestDate()
+	})
+}
+
+// SetBackfillError sets the "backfill_error" field.
+func (u *RepositoryUpsertOne) SetBackfillError(v string) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillError(v)
+	})
+}
+
+// UpdateBackfillError sets the "backfill_error" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateBackfillError() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillError()
+	})
+}
+
+// ClearBackfillError clears the value of the "backfill_error" field.
+func (u *RepositoryUpsertOne) ClearBackfillError() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillError()
+	})
+}
+
+// SetBackfillUpdatedAt sets the "backfill_updated_at" field.
+func (u *RepositoryUpsertOne) SetBackfillUpdatedAt(v time.Time) *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillUpdatedAt(v)
+	})
+}
+
+// UpdateBackfillUpdatedAt sets the "backfill_updated_at" field to the value that was provided on create.
+func (u *RepositoryUpsertOne) UpdateBackfillUpdatedAt() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillUpdatedAt()
+	})
+}
+
+// ClearBackfillUpdatedAt clears the value of the "backfill_updated_at" field.
+func (u *RepositoryUpsertOne) ClearBackfillUpdatedAt() *RepositoryUpsertOne {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillUpdatedAt()
+	})
+}
+
+// Exec executes the query.
+func (u *RepositoryUpsertOne) Exec(ctx context.Context) error {
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for RepositoryCreate.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *RepositoryUpsertOne) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// Exec executes the UPSERT query and returns the inserted/updated ID.
+func (u *RepositoryUpsertOne) ID(ctx context.Context) (id int, err error) {
+	node, err := u.create.Save(ctx)
+	if err != nil {
+		return id, err
+	}
+	return node.ID, nil
+}
+
+// IDX is like ID, but panics if an error occurs.
+func (u *RepositoryUpsertOne) IDX(ctx context.Context) int {
+	id, err := u.ID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
 // RepositoryCreateBulk is the builder for creating many Repository entities in bulk.
 type RepositoryCreateBulk struct {
 	config
 	err      error
 	builders []*RepositoryCreate
+	conflict []sql.ConflictOption
 }
 
 // Save creates the Repository entities in the database.
@@ -953,6 +2873,7 @@ func (_c *RepositoryCreateBulk) Save(ctx context.Context) ([]*Repository, error)
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
+					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -1003,6 +2924,1076 @@ func (_c *RepositoryCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (_c *RepositoryCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
+		panic(err)
+	}
+}
+
+// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
+// of the `INSERT` statement. For example:
+//
+//	client.Repository.CreateBulk(builders...).
+//		OnConflict(
+//			// Update the row with the new values
+//			// the was proposed for insertion.
+//			sql.ResolveWithNewValues(),
+//		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.RepositoryUpsert) {
+//			SetGithubID(v+v).
+//		}).
+//		Exec(ctx)
+func (_c *RepositoryCreateBulk) OnConflict(opts ...sql.ConflictOption) *RepositoryUpsertBulk {
+	_c.conflict = opts
+	return &RepositoryUpsertBulk{
+		create: _c,
+	}
+}
+
+// OnConflictColumns calls `OnConflict` and configures the columns
+// as conflict target. Using this option is equivalent to using:
+//
+//	client.Repository.Create().
+//		OnConflict(sql.ConflictColumns(columns...)).
+//		Exec(ctx)
+func (_c *RepositoryCreateBulk) OnConflictColumns(columns ...string) *RepositoryUpsertBulk {
+	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
+	return &RepositoryUpsertBulk{
+		create: _c,
+	}
+}
+
+// RepositoryUpsertBulk is the builder for "upsert"-ing
+// a bulk of Repository nodes.
+type RepositoryUpsertBulk struct {
+	create *RepositoryCreateBulk
+}
+
+// UpdateNewValues updates the mutable fields using the new values that
+// were set on create. Using this option is equivalent to using:
+//
+//	client.Repository.Create().
+//		OnConflict(
+//			sql.ResolveWithNewValues(),
+//		).
+//		Exec(ctx)
+func (u *RepositoryUpsertBulk) UpdateNewValues() *RepositoryUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	return u
+}
+
+// Ignore sets each column to itself in case of conflict.
+// Using this option is equivalent to using:
+//
+//	client.Repository.Create().
+//		OnConflict(sql.ResolveWithIgnore()).
+//		Exec(ctx)
+func (u *RepositoryUpsertBulk) Ignore() *RepositoryUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
+	return u
+}
+
+// DoNothing configures the conflict_action to `DO NOTHING`.
+// Supported only by SQLite and PostgreSQL.
+func (u *RepositoryUpsertBulk) DoNothing() *RepositoryUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.DoNothing())
+	return u
+}
+
+// Update allows overriding fields `UPDATE` values. See the RepositoryCreateBulk.OnConflict
+// documentation for more info.
+func (u *RepositoryUpsertBulk) Update(set func(*RepositoryUpsert)) *RepositoryUpsertBulk {
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
+		set(&RepositoryUpsert{UpdateSet: update})
+	}))
+	return u
+}
+
+// SetGithubID sets the "github_id" field.
+func (u *RepositoryUpsertBulk) SetGithubID(v int64) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetGithubID(v)
+	})
+}
+
+// AddGithubID adds v to the "github_id" field.
+func (u *RepositoryUpsertBulk) AddGithubID(v int64) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddGithubID(v)
+	})
+}
+
+// UpdateGithubID sets the "github_id" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateGithubID() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateGithubID()
+	})
+}
+
+// SetOwner sets the "owner" field.
+func (u *RepositoryUpsertBulk) SetOwner(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetOwner(v)
+	})
+}
+
+// UpdateOwner sets the "owner" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateOwner() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateOwner()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *RepositoryUpsertBulk) SetName(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateName() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateName()
+	})
+}
+
+// SetFullName sets the "full_name" field.
+func (u *RepositoryUpsertBulk) SetFullName(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetFullName(v)
+	})
+}
+
+// UpdateFullName sets the "full_name" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateFullName() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateFullName()
+	})
+}
+
+// SetDescription sets the "description" field.
+func (u *RepositoryUpsertBulk) SetDescription(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetDescription(v)
+	})
+}
+
+// UpdateDescription sets the "description" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateDescription() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateDescription()
+	})
+}
+
+// ClearDescription clears the value of the "description" field.
+func (u *RepositoryUpsertBulk) ClearDescription() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearDescription()
+	})
+}
+
+// SetHTMLURL sets the "html_url" field.
+func (u *RepositoryUpsertBulk) SetHTMLURL(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetHTMLURL(v)
+	})
+}
+
+// UpdateHTMLURL sets the "html_url" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateHTMLURL() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateHTMLURL()
+	})
+}
+
+// SetLanguage sets the "language" field.
+func (u *RepositoryUpsertBulk) SetLanguage(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLanguage(v)
+	})
+}
+
+// UpdateLanguage sets the "language" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateLanguage() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLanguage()
+	})
+}
+
+// ClearLanguage clears the value of the "language" field.
+func (u *RepositoryUpsertBulk) ClearLanguage() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLanguage()
+	})
+}
+
+// SetDefaultBranch sets the "default_branch" field.
+func (u *RepositoryUpsertBulk) SetDefaultBranch(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetDefaultBranch(v)
+	})
+}
+
+// UpdateDefaultBranch sets the "default_branch" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateDefaultBranch() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateDefaultBranch()
+	})
+}
+
+// SetLatestCommitSha sets the "latest_commit_sha" field.
+func (u *RepositoryUpsertBulk) SetLatestCommitSha(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestCommitSha(v)
+	})
+}
+
+// UpdateLatestCommitSha sets the "latest_commit_sha" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateLatestCommitSha() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestCommitSha()
+	})
+}
+
+// ClearLatestCommitSha clears the value of the "latest_commit_sha" field.
+func (u *RepositoryUpsertBulk) ClearLatestCommitSha() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestCommitSha()
+	})
+}
+
+// SetLatestCommitMessage sets the "latest_commit_message" field.
+func (u *RepositoryUpsertBulk) SetLatestCommitMessage(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestCommitMessage(v)
+	})
+}
+
+// UpdateLatestCommitMessage sets the "latest_commit_message" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateLatestCommitMessage() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestCommitMessage()
+	})
+}
+
+// ClearLatestCommitMessage clears the value of the "latest_commit_message" field.
+func (u *RepositoryUpsertBulk) ClearLatestCommitMessage() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestCommitMessage()
+	})
+}
+
+// SetLatestCommitDate sets the "latest_commit_date" field.
+func (u *RepositoryUpsertBulk) SetLatestCommitDate(v time.Time) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestCommitDate(v)
+	})
+}
+
+// UpdateLatestCommitDate sets the "latest_commit_date" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateLatestCommitDate() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestCommitDate()
+	})
+}
+
+// ClearLatestCommitDate clears the value of the "latest_commit_date" field.
+func (u *RepositoryUpsertBulk) ClearLatestCommitDate() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestCommitDate()
+	})
+}
+
+// SetLatestReleaseTag sets the "latest_release_tag" field.
+func (u *RepositoryUpsertBulk) SetLatestReleaseTag(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestReleaseTag(v)
+	})
+}
+
+// UpdateLatestReleaseTag sets the "latest_release_tag" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateLatestReleaseTag() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestReleaseTag()
+	})
+}
+
+// ClearLatestReleaseTag clears the value of the "latest_release_tag" field.
+func (u *RepositoryUpsertBulk) ClearLatestReleaseTag() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestReleaseTag()
+	})
+}
+
+// SetLatestReleaseName sets the "latest_release_name" field.
+func (u *RepositoryUpsertBulk) SetLatestReleaseName(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestReleaseName(v)
+	})
+}
+
+// UpdateLatestReleaseName sets the "latest_release_name" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateLatestReleaseName() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestReleaseName()
+	})
+}
+
+// ClearLatestReleaseName clears the value of the "latest_release_name" field.
+func (u *RepositoryUpsertBulk) ClearLatestReleaseName() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestReleaseName()
+	})
+}
+
+// SetLatestReleaseDate sets the "latest_release_date" field.
+func (u *RepositoryUpsertBulk) SetLatestReleaseDate(v time.Time) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestReleaseDate(v)
+	})
+}
+
+// UpdateLatestReleaseDate sets the "latest_release_date" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateLatestReleaseDate() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestReleaseDate()
+	})
+}
+
+// ClearLatestReleaseDate clears the value of the "latest_release_date" field.
+func (u *RepositoryUpsertBulk) ClearLatestReleaseDate() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestReleaseDate()
+	})
+}
+
+// SetWorkflowStatus sets the "workflow_status" field.
+func (u *RepositoryUpsertBulk) SetWorkflowStatus(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetWorkflowStatus(v)
+	})
+}
+
+// UpdateWorkflowStatus sets the "workflow_status" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateWorkflowStatus() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateWorkflowStatus()
+	})
+}
+
+// ClearWorkflowStatus clears the value of the "workflow_status" field.
+func (u *RepositoryUpsertBulk) ClearWorkflowStatus() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearWorkflowStatus()
+	})
+}
+
+// SetWorkflowRunID sets the "workflow_run_id" field.
+func (u *RepositoryUpsertBulk) SetWorkflowRunID(v int64) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetWorkflowRunID(v)
+	})
+}
+
+// AddWorkflowRunID adds v to the "workflow_run_id" field.
+func (u *RepositoryUpsertBulk) AddWorkflowRunID(v int64) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddWorkflowRunID(v)
+	})
+}
+
+// UpdateWorkflowRunID sets the "workflow_run_id" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateWorkflowRunID() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateWorkflowRunID()
+	})
+}
+
+// ClearWorkflowRunID clears the value of the "workflow_run_id" field.
+func (u *RepositoryUpsertBulk) ClearWorkflowRunID() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearWorkflowRunID()
+	})
+}
+
+// SetTotalCommitsFetched sets the "total_commits_fetched" field.
+func (u *RepositoryUpsertBulk) SetTotalCommitsFetched(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetTotalCommitsFetched(v)
+	})
+}
+
+// AddTotalCommitsFetched adds v to the "total_commits_fetched" field.
+func (u *RepositoryUpsertBulk) AddTotalCommitsFetched(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddTotalCommitsFetched(v)
+	})
+}
+
+// UpdateTotalCommitsFetched sets the "total_commits_fetched" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateTotalCommitsFetched() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateTotalCommitsFetched()
+	})
+}
+
+// ClearTotalCommitsFetched clears the value of the "total_commits_fetched" field.
+func (u *RepositoryUpsertBulk) ClearTotalCommitsFetched() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearTotalCommitsFetched()
+	})
+}
+
+// SetFeatCount sets the "feat_count" field.
+func (u *RepositoryUpsertBulk) SetFeatCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetFeatCount(v)
+	})
+}
+
+// AddFeatCount adds v to the "feat_count" field.
+func (u *RepositoryUpsertBulk) AddFeatCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddFeatCount(v)
+	})
+}
+
+// UpdateFeatCount sets the "feat_count" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateFeatCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateFeatCount()
+	})
+}
+
+// ClearFeatCount clears the value of the "feat_count" field.
+func (u *RepositoryUpsertBulk) ClearFeatCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearFeatCount()
+	})
+}
+
+// SetFixCount sets the "fix_count" field.
+func (u *RepositoryUpsertBulk) SetFixCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetFixCount(v)
+	})
+}
+
+// AddFixCount adds v to the "fix_count" field.
+func (u *RepositoryUpsertBulk) AddFixCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddFixCount(v)
+	})
+}
+
+// UpdateFixCount sets the "fix_count" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateFixCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateFixCount()
+	})
+}
+
+// ClearFixCount clears the value of the "fix_count" field.
+func (u *RepositoryUpsertBulk) ClearFixCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearFixCount()
+	})
+}
+
+// SetDocsCount sets the "docs_count" field.
+func (u *RepositoryUpsertBulk) SetDocsCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetDocsCount(v)
+	})
+}
+
+// AddDocsCount adds v to the "docs_count" field.
+func (u *RepositoryUpsertBulk) AddDocsCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddDocsCount(v)
+	})
+}
+
+// UpdateDocsCount sets the "docs_count" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateDocsCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateDocsCount()
+	})
+}
+
+// ClearDocsCount clears the value of the "docs_count" field.
+func (u *RepositoryUpsertBulk) ClearDocsCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearDocsCount()
+	})
+}
+
+// SetChoreCount sets the "chore_count" field.
+func (u *RepositoryUpsertBulk) SetChoreCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetChoreCount(v)
+	})
+}
+
+// AddChoreCount adds v to the "chore_count" field.
+func (u *RepositoryUpsertBulk) AddChoreCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddChoreCount(v)
+	})
+}
+
+// UpdateChoreCount sets the "chore_count" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateChoreCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateChoreCount()
+	})
+}
+
+// ClearChoreCount clears the value of the "chore_count" field.
+func (u *RepositoryUpsertBulk) ClearChoreCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearChoreCount()
+	})
+}
+
+// SetOtherCommitCount sets the "other_commit_count" field.
+func (u *RepositoryUpsertBulk) SetOtherCommitCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetOtherCommitCount(v)
+	})
+}
+
+// AddOtherCommitCount adds v to the "other_commit_count" field.
+func (u *RepositoryUpsertBulk) AddOtherCommitCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddOtherCommitCount(v)
+	})
+}
+
+// UpdateOtherCommitCount sets the "other_commit_count" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateOtherCommitCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateOtherCommitCount()
+	})
+}
+
+// ClearOtherCommitCount clears the value of the "other_commit_count" field.
+func (u *RepositoryUpsertBulk) ClearOtherCommitCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearOtherCommitCount()
+	})
+}
+
+// SetReleaseCount sets the "release_count" field.
+func (u *RepositoryUpsertBulk) SetReleaseCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetReleaseCount(v)
+	})
+}
+
+// AddReleaseCount adds v to the "release_count" field.
+func (u *RepositoryUpsertBulk) AddReleaseCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddReleaseCount(v)
+	})
+}
+
+// UpdateReleaseCount sets the "release_count" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateReleaseCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateReleaseCount()
+	})
+}
+
+// ClearReleaseCount clears the value of the "release_count" field.
+func (u *RepositoryUpsertBulk) ClearReleaseCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearReleaseCount()
+	})
+}
+
+// SetAvgLeadTimeHours sets the "avg_lead_time_hours" field.
+func (u *RepositoryUpsertBulk) SetAvgLeadTimeHours(v float64) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetAvgLeadTimeHours(v)
+	})
+}
+
+// AddAvgLeadTimeHours adds v to the "avg_lead_time_hours" field.
+func (u *RepositoryUpsertBulk) AddAvgLeadTimeHours(v float64) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddAvgLeadTimeHours(v)
+	})
+}
+
+// UpdateAvgLeadTimeHours sets the "avg_lead_time_hours" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateAvgLeadTimeHours() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateAvgLeadTimeHours()
+	})
+}
+
+// ClearAvgLeadTimeHours clears the value of the "avg_lead_time_hours" field.
+func (u *RepositoryUpsertBulk) ClearAvgLeadTimeHours() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearAvgLeadTimeHours()
+	})
+}
+
+// SetWorkflowSuccessCount sets the "workflow_success_count" field.
+func (u *RepositoryUpsertBulk) SetWorkflowSuccessCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetWorkflowSuccessCount(v)
+	})
+}
+
+// AddWorkflowSuccessCount adds v to the "workflow_success_count" field.
+func (u *RepositoryUpsertBulk) AddWorkflowSuccessCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddWorkflowSuccessCount(v)
+	})
+}
+
+// UpdateWorkflowSuccessCount sets the "workflow_success_count" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateWorkflowSuccessCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateWorkflowSuccessCount()
+	})
+}
+
+// ClearWorkflowSuccessCount clears the value of the "workflow_success_count" field.
+func (u *RepositoryUpsertBulk) ClearWorkflowSuccessCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearWorkflowSuccessCount()
+	})
+}
+
+// SetWorkflowFailureCount sets the "workflow_failure_count" field.
+func (u *RepositoryUpsertBulk) SetWorkflowFailureCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetWorkflowFailureCount(v)
+	})
+}
+
+// AddWorkflowFailureCount adds v to the "workflow_failure_count" field.
+func (u *RepositoryUpsertBulk) AddWorkflowFailureCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddWorkflowFailureCount(v)
+	})
+}
+
+// UpdateWorkflowFailureCount sets the "workflow_failure_count" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateWorkflowFailureCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateWorkflowFailureCount()
+	})
+}
+
+// ClearWorkflowFailureCount clears the value of the "workflow_failure_count" field.
+func (u *RepositoryUpsertBulk) ClearWorkflowFailureCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearWorkflowFailureCount()
+	})
+}
+
+// SetOpenPrCount sets the "open_pr_count" field.
+func (u *RepositoryUpsertBulk) SetOpenPrCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetOpenPrCount(v)
+	})
+}
+
+// AddOpenPrCount adds v to the "open_pr_count" field.
+func (u *RepositoryUpsertBulk) AddOpenPrCount(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddOpenPrCount(v)
+	})
+}
+
+// UpdateOpenPrCount sets the "open_pr_count" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateOpenPrCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateOpenPrCount()
+	})
+}
+
+// ClearOpenPrCount clears the value of the "open_pr_count" field.
+func (u *RepositoryUpsertBulk) ClearOpenPrCount() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearOpenPrCount()
+	})
+}
+
+// SetPullRequests sets the "pull_requests" field.
+func (u *RepositoryUpsertBulk) SetPullRequests(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetPullRequests(v)
+	})
+}
+
+// UpdatePullRequests sets the "pull_requests" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdatePullRequests() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdatePullRequests()
+	})
+}
+
+// ClearPullRequests clears the value of the "pull_requests" field.
+func (u *RepositoryUpsertBulk) ClearPullRequests() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearPullRequests()
+	})
+}
+
+// SetLatestReleaseConclusion sets the "latest_release_conclusion" field.
+func (u *RepositoryUpsertBulk) SetLatestReleaseConclusion(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetLatestReleaseConclusion(v)
+	})
+}
+
+// UpdateLatestReleaseConclusion sets the "latest_release_conclusion" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateLatestReleaseConclusion() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateLatestReleaseConclusion()
+	})
+}
+
+// ClearLatestReleaseConclusion clears the value of the "latest_release_conclusion" field.
+func (u *RepositoryUpsertBulk) ClearLatestReleaseConclusion() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearLatestReleaseConclusion()
+	})
+}
+
+// SetSyncedAt sets the "synced_at" field.
+func (u *RepositoryUpsertBulk) SetSyncedAt(v time.Time) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetSyncedAt(v)
+	})
+}
+
+// UpdateSyncedAt sets the "synced_at" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateSyncedAt() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateSyncedAt()
+	})
+}
+
+// ClearSyncedAt clears the value of the "synced_at" field.
+func (u *RepositoryUpsertBulk) ClearSyncedAt() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearSyncedAt()
+	})
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (u *RepositoryUpsertBulk) SetCreatedAt(v time.Time) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetCreatedAt(v)
+	})
+}
+
+// UpdateCreatedAt sets the "created_at" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateCreatedAt() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateCreatedAt()
+	})
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (u *RepositoryUpsertBulk) SetUpdatedAt(v time.Time) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetUpdatedAt(v)
+	})
+}
+
+// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateUpdatedAt() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateUpdatedAt()
+	})
+}
+
+// SetProvider sets the "provider" field.
+func (u *RepositoryUpsertBulk) SetProvider(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetProvider(v)
+	})
+}
+
+// UpdateProvider sets the "provider" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateProvider() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateProvider()
+	})
+}
+
+// SetForgejoID sets the "forgejo_id" field.
+func (u *RepositoryUpsertBulk) SetForgejoID(v int64) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoID(v)
+	})
+}
+
+// AddForgejoID adds v to the "forgejo_id" field.
+func (u *RepositoryUpsertBulk) AddForgejoID(v int64) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddForgejoID(v)
+	})
+}
+
+// UpdateForgejoID sets the "forgejo_id" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateForgejoID() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoID()
+	})
+}
+
+// ClearForgejoID clears the value of the "forgejo_id" field.
+func (u *RepositoryUpsertBulk) ClearForgejoID() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoID()
+	})
+}
+
+// SetForgejoOwner sets the "forgejo_owner" field.
+func (u *RepositoryUpsertBulk) SetForgejoOwner(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoOwner(v)
+	})
+}
+
+// UpdateForgejoOwner sets the "forgejo_owner" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateForgejoOwner() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoOwner()
+	})
+}
+
+// ClearForgejoOwner clears the value of the "forgejo_owner" field.
+func (u *RepositoryUpsertBulk) ClearForgejoOwner() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoOwner()
+	})
+}
+
+// SetForgejoName sets the "forgejo_name" field.
+func (u *RepositoryUpsertBulk) SetForgejoName(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoName(v)
+	})
+}
+
+// UpdateForgejoName sets the "forgejo_name" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateForgejoName() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoName()
+	})
+}
+
+// ClearForgejoName clears the value of the "forgejo_name" field.
+func (u *RepositoryUpsertBulk) ClearForgejoName() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoName()
+	})
+}
+
+// SetForgejoFullName sets the "forgejo_full_name" field.
+func (u *RepositoryUpsertBulk) SetForgejoFullName(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoFullName(v)
+	})
+}
+
+// UpdateForgejoFullName sets the "forgejo_full_name" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateForgejoFullName() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoFullName()
+	})
+}
+
+// ClearForgejoFullName clears the value of the "forgejo_full_name" field.
+func (u *RepositoryUpsertBulk) ClearForgejoFullName() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoFullName()
+	})
+}
+
+// SetForgejoHTMLURL sets the "forgejo_html_url" field.
+func (u *RepositoryUpsertBulk) SetForgejoHTMLURL(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoHTMLURL(v)
+	})
+}
+
+// UpdateForgejoHTMLURL sets the "forgejo_html_url" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateForgejoHTMLURL() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoHTMLURL()
+	})
+}
+
+// ClearForgejoHTMLURL clears the value of the "forgejo_html_url" field.
+func (u *RepositoryUpsertBulk) ClearForgejoHTMLURL() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoHTMLURL()
+	})
+}
+
+// SetForgejoURL sets the "forgejo_url" field.
+func (u *RepositoryUpsertBulk) SetForgejoURL(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetForgejoURL(v)
+	})
+}
+
+// UpdateForgejoURL sets the "forgejo_url" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateForgejoURL() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateForgejoURL()
+	})
+}
+
+// ClearForgejoURL clears the value of the "forgejo_url" field.
+func (u *RepositoryUpsertBulk) ClearForgejoURL() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearForgejoURL()
+	})
+}
+
+// SetBackfillStatus sets the "backfill_status" field.
+func (u *RepositoryUpsertBulk) SetBackfillStatus(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillStatus(v)
+	})
+}
+
+// UpdateBackfillStatus sets the "backfill_status" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateBackfillStatus() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillStatus()
+	})
+}
+
+// ClearBackfillStatus clears the value of the "backfill_status" field.
+func (u *RepositoryUpsertBulk) ClearBackfillStatus() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillStatus()
+	})
+}
+
+// SetBackfillCursorPage sets the "backfill_cursor_page" field.
+func (u *RepositoryUpsertBulk) SetBackfillCursorPage(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillCursorPage(v)
+	})
+}
+
+// AddBackfillCursorPage adds v to the "backfill_cursor_page" field.
+func (u *RepositoryUpsertBulk) AddBackfillCursorPage(v int) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.AddBackfillCursorPage(v)
+	})
+}
+
+// UpdateBackfillCursorPage sets the "backfill_cursor_page" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateBackfillCursorPage() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillCursorPage()
+	})
+}
+
+// ClearBackfillCursorPage clears the value of the "backfill_cursor_page" field.
+func (u *RepositoryUpsertBulk) ClearBackfillCursorPage() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillCursorPage()
+	})
+}
+
+// SetBackfillOldestDate sets the "backfill_oldest_date" field.
+func (u *RepositoryUpsertBulk) SetBackfillOldestDate(v time.Time) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillOldestDate(v)
+	})
+}
+
+// UpdateBackfillOldestDate sets the "backfill_oldest_date" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateBackfillOldestDate() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillOldestDate()
+	})
+}
+
+// ClearBackfillOldestDate clears the value of the "backfill_oldest_date" field.
+func (u *RepositoryUpsertBulk) ClearBackfillOldestDate() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillOldestDate()
+	})
+}
+
+// SetBackfillError sets the "backfill_error" field.
+func (u *RepositoryUpsertBulk) SetBackfillError(v string) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillError(v)
+	})
+}
+
+// UpdateBackfillError sets the "backfill_error" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateBackfillError() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillError()
+	})
+}
+
+// ClearBackfillError clears the value of the "backfill_error" field.
+func (u *RepositoryUpsertBulk) ClearBackfillError() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillError()
+	})
+}
+
+// SetBackfillUpdatedAt sets the "backfill_updated_at" field.
+func (u *RepositoryUpsertBulk) SetBackfillUpdatedAt(v time.Time) *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.SetBackfillUpdatedAt(v)
+	})
+}
+
+// UpdateBackfillUpdatedAt sets the "backfill_updated_at" field to the value that was provided on create.
+func (u *RepositoryUpsertBulk) UpdateBackfillUpdatedAt() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.UpdateBackfillUpdatedAt()
+	})
+}
+
+// ClearBackfillUpdatedAt clears the value of the "backfill_updated_at" field.
+func (u *RepositoryUpsertBulk) ClearBackfillUpdatedAt() *RepositoryUpsertBulk {
+	return u.Update(func(s *RepositoryUpsert) {
+		s.ClearBackfillUpdatedAt()
+	})
+}
+
+// Exec executes the query.
+func (u *RepositoryUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
+	for i, b := range u.create.builders {
+		if len(b.conflict) != 0 {
+			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the RepositoryCreateBulk instead", i)
+		}
+	}
+	if len(u.create.conflict) == 0 {
+		return errors.New("ent: missing options for RepositoryCreateBulk.OnConflict")
+	}
+	return u.create.Exec(ctx)
+}
+
+// ExecX is like Exec, but panics if an error occurs.
+func (u *RepositoryUpsertBulk) ExecX(ctx context.Context) {
+	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
