@@ -232,7 +232,6 @@ func (h *AdminHandler) TestGotify(c *gin.Context) {
 // client from a configured client that failed to deliver.
 var ErrGotifyNotConfigured = errors.New("gotify not configured")
 
-
 // ---- partial render helpers ----
 
 func (h *AdminHandler) renderOTELForm(c *gin.Context) {
