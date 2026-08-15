@@ -290,6 +290,7 @@ func main() {
 	settingsHandler := handlers.NewSettingsHandler(client, sessionStore, ghClient, providers, syncer)
 	chartHandler := handlers.NewChartHandler(client)
 	badgeHandler := handlers.NewBadgeHandler(client)
+	trmnlHandler := handlers.NewTRMNLSummaryHandler(client)
 	gitHubAppHandler := handlers.NewGitHubAppHandler(client)
 	webhookHandler := handlers.NewWebhookHandler(client, syncer, os.Getenv("GITHUB_WEBHOOK_SECRET"))
 	// Deploy subsystem: release webhook → Docker pull/restart + Gotify notification.
@@ -362,6 +363,7 @@ func main() {
 	r.GET("/", dashHandler.Index)
 
 	r.GET("/badge/:owner/:repo", badgeHandler.Badge)
+	r.GET("/api/trmnl/summary", trmnlHandler.Summary)
 	r.POST("/webhook/github", webhookHandler.HandlePush)
 	r.POST("/webhook/github-app", gitHubAppHandler.HandleInstallation)
 

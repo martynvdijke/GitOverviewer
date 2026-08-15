@@ -267,6 +267,7 @@ task test:e2e
 │   └── favicon.ico          # Favicon
 ├── ts/                      # TypeScript source files
 ├── e2e/                     # Playwright E2E tests
+├── trmnl/                   # TRMNL e-ink plugin (templates + settings)
 ├── Taskfile.yml             # Task runner tasks
 ├── Dockerfile               # Multi-stage Docker build
 ├── docker-compose.yml       # Docker Compose config
@@ -306,7 +307,42 @@ task test:e2e
 | `/prs/close` | POST | Close a single PR from the unified queue |
 | `/prs/batch-close` | POST | Close selected PRs from the unified queue |
 | `/webhook/github` | POST | GitHub webhook — push (sync) and release (deploy) events |
+| `/api/trmnl/summary` | GET | Public TRMNL summary — latest releases + CI failures (JSON) |
 | `/ws` | GET | WebSocket endpoint |
+
+## TRMNL E-Ink Plugin
+
+GitLens ships a [TRMNL](https://usetrmnl.com/) plugin that shows the latest
+releases and CI failures from your tracked repositories on an e-ink display.
+
+The plugin lives in the `trmnl/` directory in the trmnlp project layout:
+
+```
+trmnl/
+├── .trmnlp.yml              # TRMNLP configuration (watches src/)
+└── src/
+    ├── settings.yml         # Plugin settings (polling, refresh, fields)
+    ├── full.liquid          # Full-size layout: stats + releases + failures
+    ├── half_horizontal.liquid
+    ├── half_vertical.liquid
+    └── quadrant.liquid
+```
+
+It polls the public endpoint `GET /api/trmnl/summary` once a minute. The
+response is aggregate-only — repo names, release tags and workflow status —
+and contains no user data, so it is safe to serve without authentication
+(like the `/badge/:owner/:repo` shields).
+
+To point the plugin at your own instance, set the `url` custom field in the
+TRMNL plugin settings (e.g. `https://gitlens.example.com`); the default is
+`https://gitlens.vandijke.xyz`. Releases and failing repos are each capped at
+8 entries so the payload stays small for the device.
+
+The plugin is linted on every pull request (the `trml` job in CI) and pushed
+to your TRMNL account during the release pipeline. To enable the push, add a
+`TRML_TOKEN` Actions secret in the repository settings (your TRMNL account API
+key) before the first release; without it the push step fails but CI lint and
+the rest of the release still run.
 
 ## License
 

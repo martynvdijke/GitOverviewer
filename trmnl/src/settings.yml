@@ -1,0 +1,40 @@
+strategy: polling
+no_screen_padding: 'no'
+dark_mode: 'no'
+static_data: ''
+polling_verb: get
+framework_version: 2.3.7
+serverless_language: ''
+polling_url: "{{url}}/api/trmnl/summary"
+polling_headers: ''
+polling_body: ''
+oauth_url: ''
+oauth_token_url: ''
+oauth_client_id: ''
+oauth_client_secret: ''
+oauth_scope: ''
+oauth_query_param: ''
+oauth_json_path: ''
+oauth_method: get
+oauth_body: ''
+custom_fields:
+  - keyname: url
+    field_type: url
+    name: Address of GitLens instance
+    description: URL
+    placeholder: https://gitlens.vandijke.xyz
+    help_text: Please include http:// or https://
+  - keyname: bio
+    name: About This Plugin
+    category: entertainment
+    field_type: author_bio
+    description: >-
+      Latest releases and CI failures from your GitLens instance, right on
+      your desk. Shows the newest release tags and which repositories are
+      failing their workflows.
+    github_url: https://github.com/martynvdijke/gitlens
+    learn_more_url: https://gitlens.vandijke.xyz/
+    email_address: martyn@vandijke.xyz
+name: GitLens Releases & Failures
+description: Latest releases and CI failures
+refresh_interval: 60

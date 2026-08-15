@@ -1,0 +1,7 @@
+# TRMNLP configuration
+---
+watch: [.trmnlp.yml, src]
+custom_fields:
+  url: ""
+variables:
+  trmnl: {}
