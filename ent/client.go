@@ -16,7 +16,6 @@ import (
 	"gitlens/ent/event"
 	"gitlens/ent/metricsnapshot"
 	"gitlens/ent/repository"
-	"gitlens/ent/servicelink"
 	"gitlens/ent/user"
 
 	"entgo.io/ent"
@@ -40,8 +39,6 @@ type Client struct {
 	MetricSnapshot *MetricSnapshotClient
 	// Repository is the client for interacting with the Repository builders.
 	Repository *RepositoryClient
-	// ServiceLink is the client for interacting with the ServiceLink builders.
-	ServiceLink *ServiceLinkClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -60,7 +57,6 @@ func (c *Client) init() {
 	c.Event = NewEventClient(c.config)
 	c.MetricSnapshot = NewMetricSnapshotClient(c.config)
 	c.Repository = NewRepositoryClient(c.config)
-	c.ServiceLink = NewServiceLinkClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -159,7 +155,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Event:          NewEventClient(cfg),
 		MetricSnapshot: NewMetricSnapshotClient(cfg),
 		Repository:     NewRepositoryClient(cfg),
-		ServiceLink:    NewServiceLinkClient(cfg),
 		User:           NewUserClient(cfg),
 	}, nil
 }
@@ -185,7 +180,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Event:          NewEventClient(cfg),
 		MetricSnapshot: NewMetricSnapshotClient(cfg),
 		Repository:     NewRepositoryClient(cfg),
-		ServiceLink:    NewServiceLinkClient(cfg),
 		User:           NewUserClient(cfg),
 	}, nil
 }
@@ -217,7 +211,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.AdminConfig, c.CommitActivity, c.Event, c.MetricSnapshot, c.Repository,
-		c.ServiceLink, c.User,
+		c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -228,7 +222,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.AdminConfig, c.CommitActivity, c.Event, c.MetricSnapshot, c.Repository,
-		c.ServiceLink, c.User,
+		c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -247,8 +241,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.MetricSnapshot.mutate(ctx, m)
 	case *RepositoryMutation:
 		return c.Repository.mutate(ctx, m)
-	case *ServiceLinkMutation:
-		return c.ServiceLink.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -937,139 +929,6 @@ func (c *RepositoryClient) mutate(ctx context.Context, m *RepositoryMutation) (V
 	}
 }
 
-// ServiceLinkClient is a client for the ServiceLink schema.
-type ServiceLinkClient struct {
-	config
-}
-
-// NewServiceLinkClient returns a client for the ServiceLink from the given config.
-func NewServiceLinkClient(c config) *ServiceLinkClient {
-	return &ServiceLinkClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `servicelink.Hooks(f(g(h())))`.
-func (c *ServiceLinkClient) Use(hooks ...Hook) {
-	c.hooks.ServiceLink = append(c.hooks.ServiceLink, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `servicelink.Intercept(f(g(h())))`.
-func (c *ServiceLinkClient) Intercept(interceptors ...Interceptor) {
-	c.inters.ServiceLink = append(c.inters.ServiceLink, interceptors...)
-}
-
-// Create returns a builder for creating a ServiceLink entity.
-func (c *ServiceLinkClient) Create() *ServiceLinkCreate {
-	mutation := newServiceLinkMutation(c.config, OpCreate)
-	return &ServiceLinkCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of ServiceLink entities.
-func (c *ServiceLinkClient) CreateBulk(builders ...*ServiceLinkCreate) *ServiceLinkCreateBulk {
-	return &ServiceLinkCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *ServiceLinkClient) MapCreateBulk(slice any, setFunc func(*ServiceLinkCreate, int)) *ServiceLinkCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &ServiceLinkCreateBulk{err: fmt.Errorf("calling to ServiceLinkClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*ServiceLinkCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &ServiceLinkCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for ServiceLink.
-func (c *ServiceLinkClient) Update() *ServiceLinkUpdate {
-	mutation := newServiceLinkMutation(c.config, OpUpdate)
-	return &ServiceLinkUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *ServiceLinkClient) UpdateOne(_m *ServiceLink) *ServiceLinkUpdateOne {
-	mutation := newServiceLinkMutation(c.config, OpUpdateOne, withServiceLink(_m))
-	return &ServiceLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *ServiceLinkClient) UpdateOneID(id int) *ServiceLinkUpdateOne {
-	mutation := newServiceLinkMutation(c.config, OpUpdateOne, withServiceLinkID(id))
-	return &ServiceLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for ServiceLink.
-func (c *ServiceLinkClient) Delete() *ServiceLinkDelete {
-	mutation := newServiceLinkMutation(c.config, OpDelete)
-	return &ServiceLinkDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *ServiceLinkClient) DeleteOne(_m *ServiceLink) *ServiceLinkDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *ServiceLinkClient) DeleteOneID(id int) *ServiceLinkDeleteOne {
-	builder := c.Delete().Where(servicelink.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &ServiceLinkDeleteOne{builder}
-}
-
-// Query returns a query builder for ServiceLink.
-func (c *ServiceLinkClient) Query() *ServiceLinkQuery {
-	return &ServiceLinkQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeServiceLink},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a ServiceLink entity by its id.
-func (c *ServiceLinkClient) Get(ctx context.Context, id int) (*ServiceLink, error) {
-	return c.Query().Where(servicelink.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *ServiceLinkClient) GetX(ctx context.Context, id int) *ServiceLink {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *ServiceLinkClient) Hooks() []Hook {
-	return c.hooks.ServiceLink
-}
-
-// Interceptors returns the client interceptors.
-func (c *ServiceLinkClient) Interceptors() []Interceptor {
-	return c.inters.ServiceLink
-}
-
-func (c *ServiceLinkClient) mutate(ctx context.Context, m *ServiceLinkMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&ServiceLinkCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&ServiceLinkUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&ServiceLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&ServiceLinkDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown ServiceLink mutation op: %q", m.Op())
-	}
-}
-
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -1222,11 +1081,10 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AdminConfig, CommitActivity, Event, MetricSnapshot, Repository, ServiceLink,
-		User []ent.Hook
+		AdminConfig, CommitActivity, Event, MetricSnapshot, Repository, User []ent.Hook
 	}
 	inters struct {
-		AdminConfig, CommitActivity, Event, MetricSnapshot, Repository, ServiceLink,
+		AdminConfig, CommitActivity, Event, MetricSnapshot, Repository,
 		User []ent.Interceptor
 	}
 )

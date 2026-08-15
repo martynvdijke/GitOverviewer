@@ -21,8 +21,5 @@ type MetricSnapshot func(*sql.Selector)
 // Repository is the predicate function for repository builders.
 type Repository func(*sql.Selector)
 
-// ServiceLink is the predicate function for servicelink builders.
-type ServiceLink func(*sql.Selector)
-
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

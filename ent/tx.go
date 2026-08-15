@@ -22,8 +22,6 @@ type Tx struct {
 	MetricSnapshot *MetricSnapshotClient
 	// Repository is the client for interacting with the Repository builders.
 	Repository *RepositoryClient
-	// ServiceLink is the client for interacting with the ServiceLink builders.
-	ServiceLink *ServiceLinkClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -162,7 +160,6 @@ func (tx *Tx) init() {
 	tx.Event = NewEventClient(tx.config)
 	tx.MetricSnapshot = NewMetricSnapshotClient(tx.config)
 	tx.Repository = NewRepositoryClient(tx.config)
-	tx.ServiceLink = NewServiceLinkClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

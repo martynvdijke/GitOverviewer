@@ -7,7 +7,6 @@ import (
 	"gitlens/ent/event"
 	"gitlens/ent/repository"
 	"gitlens/ent/schema"
-	"gitlens/ent/servicelink"
 	"gitlens/ent/user"
 	"time"
 )
@@ -82,18 +81,6 @@ func init() {
 	repositoryDescBackfillCursorPage := repositoryFields[40].Descriptor()
 	// repository.DefaultBackfillCursorPage holds the default value on creation for the backfill_cursor_page field.
 	repository.DefaultBackfillCursorPage = repositoryDescBackfillCursorPage.Default.(int)
-	servicelinkFields := schema.ServiceLink{}.Fields()
-	_ = servicelinkFields
-	// servicelinkDescLiveState is the schema descriptor for live_state field.
-	servicelinkDescLiveState := servicelinkFields[3].Descriptor()
-	// servicelink.DefaultLiveState holds the default value on creation for the live_state field.
-	servicelink.DefaultLiveState = servicelinkDescLiveState.Default.(string)
-	// servicelinkDescUpdatedAt is the schema descriptor for updated_at field.
-	servicelinkDescUpdatedAt := servicelinkFields[4].Descriptor()
-	// servicelink.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	servicelink.DefaultUpdatedAt = servicelinkDescUpdatedAt.Default.(func() time.Time)
-	// servicelink.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	servicelink.UpdateDefaultUpdatedAt = servicelinkDescUpdatedAt.UpdateDefault.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescSyncIntervalMinutes is the schema descriptor for sync_interval_minutes field.

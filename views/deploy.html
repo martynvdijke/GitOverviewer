@@ -15,10 +15,6 @@
     </div>
     {{end}}
 
-    {{if .Flash}}
-    <div class="alert alert-{{.FlashType}} py-2 small mb-3" role="alert">{{.Flash}}</div>
-    {{end}}
-
     {{if not .Enabled}}
     <div class="card border-secondary text-center py-5">
         <div class="card-body">
@@ -104,108 +100,6 @@
                             {{end}}
                             <span class="text-secondary small ms-1">{{.Reason}}</span>
                         </td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {{end}}
-
-    {{if .ContainerLinks}}
-    <div class="mt-4">
-        <h5 class="mb-2">Service Links
-            <span class="text-secondary small fw-normal">(Uptime Kuma / NPM / Authelia)</span>
-        </h5>
-        <div class="table-responsive">
-            <table class="table table-sm table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Container</th>
-                        <th>Uptime Kuma</th>
-                        <th>NPM</th>
-                        <th>Authelia</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range .ContainerLinks}}
-                    {{$container := .Container}}{{$port := .Port}}
-                    <tr>
-                        <td>
-                            <code>{{$container}}</code>
-                            {{if $port}}<span class="text-secondary small">:{{$port}}</span>{{end}}
-                        </td>
-                        {{range .States}}
-                        <td>
-                            {{if not .Configured}}
-                            <span class="badge bg-secondary">Not configured</span>
-                            {{else if not .Linked}}
-                            <div class="d-flex flex-column gap-1">
-                                <span class="badge bg-secondary">Not linked</span>
-                                {{if eq .Service "uptime_kuma"}}
-                                <form class="d-flex gap-1" hx-post="/deploy/links" hx-target="#main-content" hx-swap="innerHTML">
-                                    <input type="hidden" name="container" value="{{$container}}">
-                                    <input type="hidden" name="service" value="uptime_kuma">
-                                    <input class="form-control form-control-sm" name="reference" placeholder="Monitor ID" style="width:90px" required>
-                                    <button class="btn btn-sm btn-outline-primary">Link</button>
-                                </form>
-                                <form class="d-flex gap-1" hx-post="/deploy/links/uptime-kuma/add-monitor" hx-target="#main-content" hx-swap="innerHTML">
-                                    <input type="hidden" name="container" value="{{$container}}">
-                                    <input class="form-control form-control-sm" name="port" placeholder="Port (optional)" style="width:110px">
-                                    <button class="btn btn-sm btn-outline-success">Add monitor</button>
-                                </form>
-                                {{else if eq .Service "npm"}}
-                                <form class="d-flex gap-1" hx-post="/deploy/links/npm/add-proxy-host" hx-target="#main-content" hx-swap="innerHTML">
-                                    <input type="hidden" name="container" value="{{$container}}">
-                                    <input class="form-control form-control-sm" name="domain" placeholder="app.example.com" required>
-                                    <input class="form-control form-control-sm" name="port" placeholder="Port (optional)" style="width:110px">
-                                    <button class="btn btn-sm btn-outline-success">Add proxy host</button>
-                                </form>
-                                <form class="d-flex gap-1" hx-post="/deploy/links" hx-target="#main-content" hx-swap="innerHTML">
-                                    <input type="hidden" name="container" value="{{$container}}">
-                                    <input type="hidden" name="service" value="npm">
-                                    <input class="form-control form-control-sm" name="reference" placeholder="Hostname" required>
-                                    <button class="btn btn-sm btn-outline-primary">Link</button>
-                                </form>
-                                {{else if eq .Service "authelia"}}
-                                <form class="d-flex gap-1" hx-post="/deploy/links" hx-target="#main-content" hx-swap="innerHTML">
-                                    <input type="hidden" name="container" value="{{$container}}">
-                                    <input type="hidden" name="service" value="authelia">
-                                    <input class="form-control form-control-sm" name="reference" placeholder="Domain" required>
-                                    <button class="btn btn-sm btn-outline-primary">Link</button>
-                                </form>
-                                {{end}}
-                            </div>
-                            {{else}}
-                            <div class="d-flex flex-column gap-1 align-items-start">
-                                <span class="badge bg-success">Linked</span>
-                                <code class="small">{{.Reference}}</code>
-                                <span class="small">
-                                    {{if eq .LiveState "up"}}<span class="badge bg-success">up</span>
-                                    {{else if eq .LiveState "down"}}<span class="badge bg-danger">down</span>
-                                    {{else if eq .LiveState "enabled"}}<span class="badge bg-success">enabled</span>
-                                    {{else if eq .LiveState "disabled"}}<span class="badge bg-secondary">disabled</span>
-                                    {{else}}<span class="badge bg-secondary">unknown</span>{{end}}
-                                </span>
-                                {{if eq .Service "authelia"}}
-                                <div class="d-flex flex-column gap-1">
-                                    <div class="d-flex gap-1">
-                                        <button class="btn btn-sm btn-outline-secondary" hx-get="/deploy/links/authelia/yaml?domain={{.Reference}}" hx-target="#authelia-snippet-{{$container}}" hx-swap="innerHTML" hx-on::after-request="document.getElementById('authelia-snippet-{{$container}}').style.display='block'">Access rule</button>
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="copyToClipboard('authelia-snippet-{{$container}}')">Copy</button>
-                                    </div>
-                                    <pre id="authelia-snippet-{{$container}}" class="small text-secondary mb-0 p-2 border rounded" style="max-width:420px;display:none"></pre>
-                                    <span class="text-secondary small">Paste into <code>config.yml</code> <code>access_control.rules</code> and reload Authelia.</span>
-                                </div>
-                                {{end}}
-                                <form hx-delete="/deploy/links" hx-target="#main-content" hx-swap="innerHTML">
-                                    <input type="hidden" name="container" value="{{$container}}">
-                                    <input type="hidden" name="service" value="{{.Service}}">
-                                    <button class="btn btn-sm btn-outline-danger">Unlink</button>
-                                </form>
-                            </div>
-                            {{end}}
-                        </td>
-                        {{end}}
                     </tr>
                     {{end}}
                 </tbody>

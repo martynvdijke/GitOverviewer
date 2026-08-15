@@ -127,12 +127,6 @@ All configuration is done via environment variables. For local development, plac
 | `DEPLOY_ALLOW_PRERELEASE` | `false` | Set to `true` to allow prerelease GitHub releases to trigger deploys |
 | `GOTIFY_URL` | — | Gotify server base URL (required for deploy notifications) |
 | `GOTIFY_TOKEN` | — | Gotify application token (required for deploy notifications) |
-| `KUMA_URL` | — | Uptime Kuma base URL (enables linking labeled containers to monitors) |
-| `KUMA_USERNAME` | — | Uptime Kuma login username (required if KUMA_URL set) |
-| `KUMA_PASSWORD` | — | Uptime Kuma login password (required if KUMA_URL set; never commit) |
-| `NPM_URL` | — | Nginx Proxy Manager base URL (enables linking labeled containers to proxy hosts) |
-| `NPM_IDENTITY` | — | NPM login email (required if NPM_URL set) |
-| `NPM_SECRET` | — | NPM login password (required if NPM_URL set; never commit) |
 
 ## Release → Docker Deploy
 
@@ -170,31 +164,6 @@ Tag strategy options:
 
 > ⚠️ Use `DEPLOY_BACKEND=compose` for compose-managed containers — the default `api`
 > backend recreates them without their compose env/network/volume configuration.
-
-## Service Links (Uptime Kuma, NPM, Authelia)
-
-On the **Deploy** tab, every container discovered via the `gitlens.deploy.target`
-label can be manually linked to three external services. Links are stored in
-SQLite (new `service_links` table, created automatically on startup) and shown
-with per-service status badges.
-
-- **Uptime Kuma** — link a container to an existing monitor by ID, or click
-  *Add monitor* to auto-create an HTTP monitor from the container's published
-  port. Status shows up/down. Enabled by setting `KUMA_URL`, `KUMA_USERNAME`,
-  and `KUMA_PASSWORD`.
-- **Nginx Proxy Manager (NPM)** — link a container to an existing proxy host by
-  hostname, or click *Add proxy host* to auto-create one (WebSocket support on,
-  forwarding to the container's hostname and published port). Status shows
-  enabled/disabled. Enabled by setting `NPM_URL`, `NPM_IDENTITY`, and
-  `NPM_SECRET`.
-- **Authelia** — link a container by domain and copy an
-  `access_control.rules` YAML snippet (bypass for Authelia's one-time-password
-  endpoint, then deny for the domain) to paste into Authelia's `config.yml`.
-  No env vars needed.
-
-When a service is not configured, its buttons are disabled and show
-"Not configured". The full guide lives in
-**[docs/deploy-targets.md](docs/deploy-targets.md)**.
 
 ## Docker
 

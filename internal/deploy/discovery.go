@@ -46,7 +46,6 @@ type DiscoveredContainer struct {
 	Label     string // gitlens.deploy.target value (owner/repo)
 	Tracked   bool   // whether GitLens tracks this container via its label
 	Reason    string // why it is or is not tracked
-	Port      int    // first published container port (0 if none)
 }
 
 // DiscoverContainerStatus inspects running containers for the
@@ -77,7 +76,6 @@ func discoverContainerStatus(ctx context.Context, explicit []Target) ([]Discover
 			Image:     img,
 			Tag:       tag,
 			Label:     c.Config.Labels["gitlens.deploy.target"],
-			Port:      portForContainer(c),
 		}
 
 		switch {

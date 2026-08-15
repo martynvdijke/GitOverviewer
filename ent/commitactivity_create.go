@@ -9,7 +9,6 @@ import (
 	"gitlens/ent/commitactivity"
 	"time"
 
-	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 )
@@ -19,7 +18,6 @@ type CommitActivityCreate struct {
 	config
 	mutation *CommitActivityMutation
 	hooks    []Hook
-	conflict []sql.ConflictOption
 }
 
 // SetRepoID sets the "repo_id" field.
@@ -109,7 +107,6 @@ func (_c *CommitActivityCreate) createSpec() (*CommitActivity, *sqlgraph.CreateS
 		_node = &CommitActivity{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(commitactivity.Table, sqlgraph.NewFieldSpec(commitactivity.FieldID, field.TypeInt))
 	)
-	_spec.OnConflict = _c.conflict
 	if value, ok := _c.mutation.RepoID(); ok {
 		_spec.SetField(commitactivity.FieldRepoID, field.TypeInt, value)
 		_node.RepoID = value
@@ -125,238 +122,11 @@ func (_c *CommitActivityCreate) createSpec() (*CommitActivity, *sqlgraph.CreateS
 	return _node, _spec
 }
 
-// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
-// of the `INSERT` statement. For example:
-//
-//	client.CommitActivity.Create().
-//		SetRepoID(v).
-//		OnConflict(
-//			// Update the row with the new values
-//			// the was proposed for insertion.
-//			sql.ResolveWithNewValues(),
-//		).
-//		// Override some of the fields with custom
-//		// update values.
-//		Update(func(u *ent.CommitActivityUpsert) {
-//			SetRepoID(v+v).
-//		}).
-//		Exec(ctx)
-func (_c *CommitActivityCreate) OnConflict(opts ...sql.ConflictOption) *CommitActivityUpsertOne {
-	_c.conflict = opts
-	return &CommitActivityUpsertOne{
-		create: _c,
-	}
-}
-
-// OnConflictColumns calls `OnConflict` and configures the columns
-// as conflict target. Using this option is equivalent to using:
-//
-//	client.CommitActivity.Create().
-//		OnConflict(sql.ConflictColumns(columns...)).
-//		Exec(ctx)
-func (_c *CommitActivityCreate) OnConflictColumns(columns ...string) *CommitActivityUpsertOne {
-	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
-	return &CommitActivityUpsertOne{
-		create: _c,
-	}
-}
-
-type (
-	// CommitActivityUpsertOne is the builder for "upsert"-ing
-	//  one CommitActivity node.
-	CommitActivityUpsertOne struct {
-		create *CommitActivityCreate
-	}
-
-	// CommitActivityUpsert is the "OnConflict" setter.
-	CommitActivityUpsert struct {
-		*sql.UpdateSet
-	}
-)
-
-// SetRepoID sets the "repo_id" field.
-func (u *CommitActivityUpsert) SetRepoID(v int) *CommitActivityUpsert {
-	u.Set(commitactivity.FieldRepoID, v)
-	return u
-}
-
-// UpdateRepoID sets the "repo_id" field to the value that was provided on create.
-func (u *CommitActivityUpsert) UpdateRepoID() *CommitActivityUpsert {
-	u.SetExcluded(commitactivity.FieldRepoID)
-	return u
-}
-
-// AddRepoID adds v to the "repo_id" field.
-func (u *CommitActivityUpsert) AddRepoID(v int) *CommitActivityUpsert {
-	u.Add(commitactivity.FieldRepoID, v)
-	return u
-}
-
-// SetDate sets the "date" field.
-func (u *CommitActivityUpsert) SetDate(v time.Time) *CommitActivityUpsert {
-	u.Set(commitactivity.FieldDate, v)
-	return u
-}
-
-// UpdateDate sets the "date" field to the value that was provided on create.
-func (u *CommitActivityUpsert) UpdateDate() *CommitActivityUpsert {
-	u.SetExcluded(commitactivity.FieldDate)
-	return u
-}
-
-// SetCommitCount sets the "commit_count" field.
-func (u *CommitActivityUpsert) SetCommitCount(v int) *CommitActivityUpsert {
-	u.Set(commitactivity.FieldCommitCount, v)
-	return u
-}
-
-// UpdateCommitCount sets the "commit_count" field to the value that was provided on create.
-func (u *CommitActivityUpsert) UpdateCommitCount() *CommitActivityUpsert {
-	u.SetExcluded(commitactivity.FieldCommitCount)
-	return u
-}
-
-// AddCommitCount adds v to the "commit_count" field.
-func (u *CommitActivityUpsert) AddCommitCount(v int) *CommitActivityUpsert {
-	u.Add(commitactivity.FieldCommitCount, v)
-	return u
-}
-
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
-// Using this option is equivalent to using:
-//
-//	client.CommitActivity.Create().
-//		OnConflict(
-//			sql.ResolveWithNewValues(),
-//		).
-//		Exec(ctx)
-func (u *CommitActivityUpsertOne) UpdateNewValues() *CommitActivityUpsertOne {
-	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
-	return u
-}
-
-// Ignore sets each column to itself in case of conflict.
-// Using this option is equivalent to using:
-//
-//	client.CommitActivity.Create().
-//	    OnConflict(sql.ResolveWithIgnore()).
-//	    Exec(ctx)
-func (u *CommitActivityUpsertOne) Ignore() *CommitActivityUpsertOne {
-	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
-	return u
-}
-
-// DoNothing configures the conflict_action to `DO NOTHING`.
-// Supported only by SQLite and PostgreSQL.
-func (u *CommitActivityUpsertOne) DoNothing() *CommitActivityUpsertOne {
-	u.create.conflict = append(u.create.conflict, sql.DoNothing())
-	return u
-}
-
-// Update allows overriding fields `UPDATE` values. See the CommitActivityCreate.OnConflict
-// documentation for more info.
-func (u *CommitActivityUpsertOne) Update(set func(*CommitActivityUpsert)) *CommitActivityUpsertOne {
-	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
-		set(&CommitActivityUpsert{UpdateSet: update})
-	}))
-	return u
-}
-
-// SetRepoID sets the "repo_id" field.
-func (u *CommitActivityUpsertOne) SetRepoID(v int) *CommitActivityUpsertOne {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.SetRepoID(v)
-	})
-}
-
-// AddRepoID adds v to the "repo_id" field.
-func (u *CommitActivityUpsertOne) AddRepoID(v int) *CommitActivityUpsertOne {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.AddRepoID(v)
-	})
-}
-
-// UpdateRepoID sets the "repo_id" field to the value that was provided on create.
-func (u *CommitActivityUpsertOne) UpdateRepoID() *CommitActivityUpsertOne {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.UpdateRepoID()
-	})
-}
-
-// SetDate sets the "date" field.
-func (u *CommitActivityUpsertOne) SetDate(v time.Time) *CommitActivityUpsertOne {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.SetDate(v)
-	})
-}
-
-// UpdateDate sets the "date" field to the value that was provided on create.
-func (u *CommitActivityUpsertOne) UpdateDate() *CommitActivityUpsertOne {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.UpdateDate()
-	})
-}
-
-// SetCommitCount sets the "commit_count" field.
-func (u *CommitActivityUpsertOne) SetCommitCount(v int) *CommitActivityUpsertOne {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.SetCommitCount(v)
-	})
-}
-
-// AddCommitCount adds v to the "commit_count" field.
-func (u *CommitActivityUpsertOne) AddCommitCount(v int) *CommitActivityUpsertOne {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.AddCommitCount(v)
-	})
-}
-
-// UpdateCommitCount sets the "commit_count" field to the value that was provided on create.
-func (u *CommitActivityUpsertOne) UpdateCommitCount() *CommitActivityUpsertOne {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.UpdateCommitCount()
-	})
-}
-
-// Exec executes the query.
-func (u *CommitActivityUpsertOne) Exec(ctx context.Context) error {
-	if len(u.create.conflict) == 0 {
-		return errors.New("ent: missing options for CommitActivityCreate.OnConflict")
-	}
-	return u.create.Exec(ctx)
-}
-
-// ExecX is like Exec, but panics if an error occurs.
-func (u *CommitActivityUpsertOne) ExecX(ctx context.Context) {
-	if err := u.create.Exec(ctx); err != nil {
-		panic(err)
-	}
-}
-
-// Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *CommitActivityUpsertOne) ID(ctx context.Context) (id int, err error) {
-	node, err := u.create.Save(ctx)
-	if err != nil {
-		return id, err
-	}
-	return node.ID, nil
-}
-
-// IDX is like ID, but panics if an error occurs.
-func (u *CommitActivityUpsertOne) IDX(ctx context.Context) int {
-	id, err := u.ID(ctx)
-	if err != nil {
-		panic(err)
-	}
-	return id
-}
-
 // CommitActivityCreateBulk is the builder for creating many CommitActivity entities in bulk.
 type CommitActivityCreateBulk struct {
 	config
 	err      error
 	builders []*CommitActivityCreate
-	conflict []sql.ConflictOption
 }
 
 // Save creates the CommitActivity entities in the database.
@@ -385,7 +155,6 @@ func (_c *CommitActivityCreateBulk) Save(ctx context.Context) ([]*CommitActivity
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
 					spec := &sqlgraph.BatchCreateSpec{Nodes: specs}
-					spec.OnConflict = _c.conflict
 					// Invoke the actual operation on the latest mutation in the chain.
 					if err = sqlgraph.BatchCreate(ctx, _c.driver, spec); err != nil {
 						if sqlgraph.IsConstraintError(err) {
@@ -436,166 +205,6 @@ func (_c *CommitActivityCreateBulk) Exec(ctx context.Context) error {
 // ExecX is like Exec, but panics if an error occurs.
 func (_c *CommitActivityCreateBulk) ExecX(ctx context.Context) {
 	if err := _c.Exec(ctx); err != nil {
-		panic(err)
-	}
-}
-
-// OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
-// of the `INSERT` statement. For example:
-//
-//	client.CommitActivity.CreateBulk(builders...).
-//		OnConflict(
-//			// Update the row with the new values
-//			// the was proposed for insertion.
-//			sql.ResolveWithNewValues(),
-//		).
-//		// Override some of the fields with custom
-//		// update values.
-//		Update(func(u *ent.CommitActivityUpsert) {
-//			SetRepoID(v+v).
-//		}).
-//		Exec(ctx)
-func (_c *CommitActivityCreateBulk) OnConflict(opts ...sql.ConflictOption) *CommitActivityUpsertBulk {
-	_c.conflict = opts
-	return &CommitActivityUpsertBulk{
-		create: _c,
-	}
-}
-
-// OnConflictColumns calls `OnConflict` and configures the columns
-// as conflict target. Using this option is equivalent to using:
-//
-//	client.CommitActivity.Create().
-//		OnConflict(sql.ConflictColumns(columns...)).
-//		Exec(ctx)
-func (_c *CommitActivityCreateBulk) OnConflictColumns(columns ...string) *CommitActivityUpsertBulk {
-	_c.conflict = append(_c.conflict, sql.ConflictColumns(columns...))
-	return &CommitActivityUpsertBulk{
-		create: _c,
-	}
-}
-
-// CommitActivityUpsertBulk is the builder for "upsert"-ing
-// a bulk of CommitActivity nodes.
-type CommitActivityUpsertBulk struct {
-	create *CommitActivityCreateBulk
-}
-
-// UpdateNewValues updates the mutable fields using the new values that
-// were set on create. Using this option is equivalent to using:
-//
-//	client.CommitActivity.Create().
-//		OnConflict(
-//			sql.ResolveWithNewValues(),
-//		).
-//		Exec(ctx)
-func (u *CommitActivityUpsertBulk) UpdateNewValues() *CommitActivityUpsertBulk {
-	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
-	return u
-}
-
-// Ignore sets each column to itself in case of conflict.
-// Using this option is equivalent to using:
-//
-//	client.CommitActivity.Create().
-//		OnConflict(sql.ResolveWithIgnore()).
-//		Exec(ctx)
-func (u *CommitActivityUpsertBulk) Ignore() *CommitActivityUpsertBulk {
-	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
-	return u
-}
-
-// DoNothing configures the conflict_action to `DO NOTHING`.
-// Supported only by SQLite and PostgreSQL.
-func (u *CommitActivityUpsertBulk) DoNothing() *CommitActivityUpsertBulk {
-	u.create.conflict = append(u.create.conflict, sql.DoNothing())
-	return u
-}
-
-// Update allows overriding fields `UPDATE` values. See the CommitActivityCreateBulk.OnConflict
-// documentation for more info.
-func (u *CommitActivityUpsertBulk) Update(set func(*CommitActivityUpsert)) *CommitActivityUpsertBulk {
-	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(update *sql.UpdateSet) {
-		set(&CommitActivityUpsert{UpdateSet: update})
-	}))
-	return u
-}
-
-// SetRepoID sets the "repo_id" field.
-func (u *CommitActivityUpsertBulk) SetRepoID(v int) *CommitActivityUpsertBulk {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.SetRepoID(v)
-	})
-}
-
-// AddRepoID adds v to the "repo_id" field.
-func (u *CommitActivityUpsertBulk) AddRepoID(v int) *CommitActivityUpsertBulk {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.AddRepoID(v)
-	})
-}
-
-// UpdateRepoID sets the "repo_id" field to the value that was provided on create.
-func (u *CommitActivityUpsertBulk) UpdateRepoID() *CommitActivityUpsertBulk {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.UpdateRepoID()
-	})
-}
-
-// SetDate sets the "date" field.
-func (u *CommitActivityUpsertBulk) SetDate(v time.Time) *CommitActivityUpsertBulk {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.SetDate(v)
-	})
-}
-
-// UpdateDate sets the "date" field to the value that was provided on create.
-func (u *CommitActivityUpsertBulk) UpdateDate() *CommitActivityUpsertBulk {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.UpdateDate()
-	})
-}
-
-// SetCommitCount sets the "commit_count" field.
-func (u *CommitActivityUpsertBulk) SetCommitCount(v int) *CommitActivityUpsertBulk {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.SetCommitCount(v)
-	})
-}
-
-// AddCommitCount adds v to the "commit_count" field.
-func (u *CommitActivityUpsertBulk) AddCommitCount(v int) *CommitActivityUpsertBulk {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.AddCommitCount(v)
-	})
-}
-
-// UpdateCommitCount sets the "commit_count" field to the value that was provided on create.
-func (u *CommitActivityUpsertBulk) UpdateCommitCount() *CommitActivityUpsertBulk {
-	return u.Update(func(s *CommitActivityUpsert) {
-		s.UpdateCommitCount()
-	})
-}
-
-// Exec executes the query.
-func (u *CommitActivityUpsertBulk) Exec(ctx context.Context) error {
-	if u.create.err != nil {
-		return u.create.err
-	}
-	for i, b := range u.create.builders {
-		if len(b.conflict) != 0 {
-			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the CommitActivityCreateBulk instead", i)
-		}
-	}
-	if len(u.create.conflict) == 0 {
-		return errors.New("ent: missing options for CommitActivityCreateBulk.OnConflict")
-	}
-	return u.create.Exec(ctx)
-}
-
-// ExecX is like Exec, but panics if an error occurs.
-func (u *CommitActivityUpsertBulk) ExecX(ctx context.Context) {
-	if err := u.create.Exec(ctx); err != nil {
 		panic(err)
 	}
 }
