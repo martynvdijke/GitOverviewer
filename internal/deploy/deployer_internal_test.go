@@ -277,7 +277,7 @@ func TestPullAndUpdate_ExistingContainer_PreservesConfig(t *testing.T) {
 	installRecorder(t, rec)
 
 	d := &dockerDeployer{inflight: make(map[string]*containerLock)}
-	err := d.PullAndUpdate(context.Background(), Target{
+	result, err := d.PullAndUpdate(context.Background(), Target{
 		Repository: "martynvdijke/datey",
 		Image:      "ghcr.io/martynvdijke/datey",
 		Container:  "datey",
@@ -288,6 +288,17 @@ func TestPullAndUpdate_ExistingContainer_PreservesConfig(t *testing.T) {
 
 	if got, want := strings.Join(rec.verbOrder(), ","), "pull,inspect,stop,rm,create,start"; got != want {
 		t.Fatalf("command order = %s, want %s", got, want)
+	}
+
+	wantSteps := []string{
+		"pulled image ghcr.io/martynvdijke/datey:1.2.3",
+		"stopped container datey",
+		"removed container datey",
+		"created container datey from ghcr.io/martynvdijke/datey:1.2.3",
+		"started container datey",
+	}
+	if got, want := strings.Join(result.Steps, "|"), strings.Join(wantSteps, "|"); got != want {
+		t.Fatalf("steps = %s, want %s", got, want)
 	}
 
 	var create []string
@@ -329,13 +340,22 @@ func TestPullAndUpdate_ContainerMissing_CreatesBare(t *testing.T) {
 	installRecorder(t, rec)
 
 	d := &dockerDeployer{inflight: make(map[string]*containerLock)}
-	err := d.PullAndUpdate(context.Background(), Target{Image: "img", Container: "missing"}, "1.0.0")
+	result, err := d.PullAndUpdate(context.Background(), Target{Image: "img", Container: "missing"}, "1.0.0")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	if got, want := strings.Join(rec.verbOrder(), ","), "pull,inspect,create,start"; got != want {
 		t.Fatalf("command order = %s, want %s", got, want)
+	}
+
+	wantSteps := []string{
+		"pulled image img:1.0.0",
+		"created container missing from img:1.0.0",
+		"started container missing",
+	}
+	if got, want := strings.Join(result.Steps, "|"), strings.Join(wantSteps, "|"); got != want {
+		t.Fatalf("steps = %s, want %s", got, want)
 	}
 }
 
@@ -349,12 +369,15 @@ func TestPullAndUpdate_PullFailure_Stops(t *testing.T) {
 	installRecorder(t, rec)
 
 	d := &dockerDeployer{inflight: make(map[string]*containerLock)}
-	err := d.PullAndUpdate(context.Background(), Target{Image: "img", Container: "c"}, "1.0.0")
+	result, err := d.PullAndUpdate(context.Background(), Target{Image: "img", Container: "c"}, "1.0.0")
 	if err == nil {
 		t.Fatal("expected error")
 	}
 	if got := rec.verbOrder(); len(got) != 1 {
 		t.Fatalf("expected only the pull attempt, got %v", got)
+	}
+	if len(result.Steps) != 0 {
+		t.Fatalf("expected no completed steps when the pull fails, got %v", result.Steps)
 	}
 }
 
@@ -379,7 +402,7 @@ func TestPullAndUpdate_SelfUpdate_UsesHelper(t *testing.T) {
 	installRecorder(t, rec)
 
 	d := &dockerDeployer{inflight: make(map[string]*containerLock)}
-	err = d.PullAndUpdate(context.Background(), Target{
+	_, err = d.PullAndUpdate(context.Background(), Target{
 		Image:     "ghcr.io/martynvdijke/gitlens",
 		Container: "gitlens",
 	}, "latest")
@@ -454,7 +477,7 @@ func TestComposeDeployer_UsesHelper(t *testing.T) {
 	installRecorder(t, rec)
 
 	d := &composeDeployer{}
-	err := d.PullAndUpdate(context.Background(), Target{Container: "gitlens"}, "latest")
+	_, err := d.PullAndUpdate(context.Background(), Target{Container: "gitlens"}, "latest")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -499,7 +522,7 @@ func TestComposeDeployer_FallsBackToCwd(t *testing.T) {
 	installRecorder(t, rec)
 
 	d := &composeDeployer{}
-	err := d.PullAndUpdate(context.Background(), Target{Container: "standalone"}, "latest")
+	result, err := d.PullAndUpdate(context.Background(), Target{Container: "standalone"}, "latest")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -513,6 +536,14 @@ func TestComposeDeployer_FallsBackToCwd(t *testing.T) {
 	}
 	if !strings.Contains(strings.Join(cmds[2], " "), "compose up -d --no-deps standalone") {
 		t.Errorf("expected legacy compose up, got %v", cmds[2])
+	}
+
+	wantSteps := []string{
+		"pulled service standalone",
+		"recreated service standalone",
+	}
+	if got, want := strings.Join(result.Steps, "|"), strings.Join(wantSteps, "|"); got != want {
+		t.Fatalf("steps = %s, want %s", got, want)
 	}
 }
 

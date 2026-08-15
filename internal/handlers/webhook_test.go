@@ -204,13 +204,16 @@ func newFakeDeployer() *fakeDeployer {
 	return &fakeDeployer{done: make(chan struct{})}
 }
 
-func (f *fakeDeployer) PullAndUpdate(_ context.Context, target deploy.Target, tag string) error {
+func (f *fakeDeployer) PullAndUpdate(_ context.Context, target deploy.Target, tag string) (*deploy.DeployResult, error) {
 	defer func() { close(f.done) }()
 	f.calls = append(f.calls, struct {
 		Target deploy.Target
 		Tag    string
 	}{target, tag})
-	return f.err
+	return &deploy.DeployResult{Steps: []string{
+		"pulled image " + target.Image + ":" + tag,
+		"recreated container " + target.Container,
+	}}, f.err
 }
 
 func (f *fakeDeployer) waitForCall() {
@@ -497,6 +500,15 @@ func TestHandleRelease_GotifySuccessMentionsRelease(t *testing.T) {
 			t.Errorf("notification should mention %q, got: %s", want, s.Message)
 		}
 	}
+	for _, want := range []string{
+		"What happened:",
+		"pulled image ghcr.io/test/repo:1.2.3",
+		"recreated container test-app",
+	} {
+		if !strings.Contains(s.Message, want) {
+			t.Errorf("notification should report the deploy steps %q, got: %s", want, s.Message)
+		}
+	}
 	if !strings.Contains(s.Title, "v1.2.3") {
 		t.Errorf("title should mention the release tag, got: %s", s.Title)
 	}
@@ -540,6 +552,9 @@ func TestHandleRelease_GotifyFailureMentionsReleaseAndError(t *testing.T) {
 	}
 	if !strings.Contains(s.Message, "octocat") {
 		t.Errorf("notification should mention the release author, got: %s", s.Message)
+	}
+	if !strings.Contains(s.Message, "What happened:") {
+		t.Errorf("notification should report completed steps even on failure, got: %s", s.Message)
 	}
 	if s.Priority != 5 {
 		t.Errorf("expected priority 5 for failure, got %d", s.Priority)

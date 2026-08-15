@@ -247,27 +247,28 @@ func (h *WebhookHandler) handleRelease(c *gin.Context, body []byte) {
 
 func (h *WebhookHandler) runDeploy(release releaseInfo, target deploy.Target, imageTag string) {
 	ctx := context.Background()
-	err := h.deployer.PullAndUpdate(ctx, target, imageTag)
+	result, err := h.deployer.PullAndUpdate(ctx, target, imageTag)
 
 	title := fmt.Sprintf("%s %s release deploy", release.Repo, release.Tag)
 	if err != nil {
 		log.Printf("Deploy: %s failed: %v", release.Repo, err)
 		if h.gotify != nil {
-			h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, err), 5)
+			h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, result, err), 5)
 		}
 		return
 	}
 
 	log.Printf("Deploy: %s succeeded", release.Repo)
 	if h.gotify != nil {
-		h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, nil), 2)
+		h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, result, nil), 2)
 	}
 }
 
 // deployMessage renders the Gotify notification body for a deploy. It always
 // mentions the release — title, tag, author, and link — plus the target
-// container and image, and the error when the deploy failed.
-func deployMessage(release releaseInfo, target deploy.Target, imageTag string, deployErr error) string {
+// container and image, the steps the deploy performed, and the error when the
+// deploy failed.
+func deployMessage(release releaseInfo, target deploy.Target, imageTag string, result *deploy.DeployResult, deployErr error) string {
 	var b strings.Builder
 
 	if release.Name != "" && release.Name != release.Tag {
@@ -283,6 +284,14 @@ func deployMessage(release releaseInfo, target deploy.Target, imageTag string, d
 		fmt.Fprintf(&b, "Deploy FAILED: %s -> %s:%s\nError: %v", target.Container, target.Image, imageTag, deployErr)
 	} else {
 		fmt.Fprintf(&b, "Container %s updated to %s:%s", target.Container, target.Image, imageTag)
+	}
+
+	if result != nil && len(result.Steps) > 0 {
+		b.WriteString("\n\nWhat happened:")
+		for _, s := range result.Steps {
+			b.WriteString("\n• ")
+			b.WriteString(s)
+		}
 	}
 
 	if release.URL != "" {

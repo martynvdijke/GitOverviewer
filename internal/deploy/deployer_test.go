@@ -16,20 +16,23 @@ type fakeDeployer struct {
 	}
 }
 
-func (f *fakeDeployer) PullAndUpdate(_ context.Context, target deploy.Target, tag string) error {
+func (f *fakeDeployer) PullAndUpdate(_ context.Context, target deploy.Target, tag string) (*deploy.DeployResult, error) {
 	f.calls = append(f.calls, struct {
 		Target deploy.Target
 		Tag    string
 	}{target, tag})
-	return f.pullErr
+	return nil, f.pullErr
 }
 
 func TestFakeDeployer_Success(t *testing.T) {
 	d := &fakeDeployer{}
 	target := deploy.Target{Repository: "test/repo", Image: "img", Container: "c"}
-	err := d.PullAndUpdate(context.Background(), target, "1.0.0")
+	result, err := d.PullAndUpdate(context.Background(), target, "1.0.0")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if result != nil {
+		t.Fatalf("expected nil result, got %+v", result)
 	}
 	if len(d.calls) != 1 {
 		t.Fatalf("expected 1 call, got %d", len(d.calls))
@@ -42,7 +45,7 @@ func TestFakeDeployer_Success(t *testing.T) {
 func TestFakeDeployer_Error(t *testing.T) {
 	d := &fakeDeployer{pullErr: context.DeadlineExceeded}
 	target := deploy.Target{Repository: "test/repo", Image: "img", Container: "c"}
-	err := d.PullAndUpdate(context.Background(), target, "latest")
+	_, err := d.PullAndUpdate(context.Background(), target, "latest")
 	if err == nil {
 		t.Fatal("expected error")
 	}

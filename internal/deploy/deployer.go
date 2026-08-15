@@ -10,9 +10,24 @@ import (
 	"time"
 )
 
-// Deployer pulls a Docker image and updates the target container.
+// DeployResult describes what a deploy did, so notifications can report the
+// actual steps that ran (and, on failure, how far it got).
+type DeployResult struct {
+	Steps []string
+}
+
+func (r *DeployResult) add(step string) {
+	if r == nil {
+		return
+	}
+	r.Steps = append(r.Steps, step)
+}
+
+// Deployer pulls a Docker image and updates the target container. It returns
+// the steps it performed; on error the returned result still reports the steps
+// completed before the failing one (the error names the failing step).
 type Deployer interface {
-	PullAndUpdate(ctx context.Context, target Target, tag string) error
+	PullAndUpdate(ctx context.Context, target Target, tag string) (*DeployResult, error)
 }
 
 // deployTimeout bounds a single PullAndUpdate run so a hung Docker daemon
@@ -75,7 +90,7 @@ func (d *dockerDeployer) getLock(container string) *containerLock {
 	return lk
 }
 
-func (d *dockerDeployer) PullAndUpdate(ctx context.Context, target Target, tag string) error {
+func (d *dockerDeployer) PullAndUpdate(ctx context.Context, target Target, tag string) (*DeployResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, deployTimeout)
 	defer cancel()
 
@@ -83,78 +98,86 @@ func (d *dockerDeployer) PullAndUpdate(ctx context.Context, target Target, tag s
 	lk.Lock()
 	defer lk.Unlock()
 
+	result := &DeployResult{}
 	imageRef := target.Image + ":" + tag
 	log.Printf("Deploy: pulling image %s", imageRef)
 	if _, err := execCmd(ctx, "docker", "pull", imageRef); err != nil {
-		return fmt.Errorf("pull failed: %w", err)
+		return result, fmt.Errorf("pull failed: %w", err)
 	}
+	result.add("pulled image " + imageRef)
 
 	raw, err := execCmd(ctx, "docker", "inspect", target.Container)
 	if err != nil {
 		// Container doesn't exist — create it fresh.
-		return d.createNew(ctx, target.Container, imageRef)
+		return d.createNew(ctx, target.Container, imageRef, result)
 	}
 
 	cfg, err := parseInspect(raw)
 	if err != nil {
-		return fmt.Errorf("inspect failed: %w", err)
+		return result, fmt.Errorf("inspect failed: %w", err)
 	}
 
 	if isSelfContainer(cfg.ID) {
 		log.Printf("Deploy: %s is the container running GitLens — updating via helper", target.Container)
-		return d.updateSelf(ctx, target.Container, imageRef, cfg)
+		return d.updateSelf(ctx, target.Container, imageRef, cfg, result)
 	}
 
-	return d.updateDirect(ctx, target.Container, imageRef, cfg)
+	return d.updateDirect(ctx, target.Container, imageRef, cfg, result)
 }
 
 // createNew creates and starts a container that does not exist yet.
-func (d *dockerDeployer) createNew(ctx context.Context, container, imageRef string) error {
+func (d *dockerDeployer) createNew(ctx context.Context, container, imageRef string, result *DeployResult) (*DeployResult, error) {
 	log.Printf("Deploy: container %s does not exist, creating...", container)
 	if err := execStep(ctx, "docker", "create", "--name", container, imageRef); err != nil {
-		return fmt.Errorf("create failed: %w", err)
+		return result, fmt.Errorf("create failed: %w", err)
 	}
+	result.add("created container " + container + " from " + imageRef)
 	if err := execStep(ctx, "docker", "start", container); err != nil {
-		return fmt.Errorf("start failed: %w", err)
+		return result, fmt.Errorf("start failed: %w", err)
 	}
+	result.add("started container " + container)
 	log.Printf("Deploy: container %s created with %s", container, imageRef)
-	return nil
+	return result, nil
 }
 
 // updateDirect recreates an existing container in place, preserving its
 // runtime configuration.
-func (d *dockerDeployer) updateDirect(ctx context.Context, container, imageRef string, cfg *containerInspect) error {
+func (d *dockerDeployer) updateDirect(ctx context.Context, container, imageRef string, cfg *containerInspect, result *DeployResult) (*DeployResult, error) {
 	createArgs := containerCreateArgs(cfg)
 
 	log.Printf("Deploy: stopping container %s", container)
 	if err := execStep(ctx, "docker", "stop", container); err != nil {
-		return fmt.Errorf("stop failed: %w", err)
+		return result, fmt.Errorf("stop failed: %w", err)
 	}
+	result.add("stopped container " + container)
 
 	log.Printf("Deploy: removing container %s", container)
 	if err := execStep(ctx, "docker", "rm", container); err != nil {
-		return fmt.Errorf("rm failed: %w", err)
+		return result, fmt.Errorf("rm failed: %w", err)
 	}
+	result.add("removed container " + container)
 
 	args := append([]string{"create", "--name", container}, createArgs...)
 	args = append(args, imageRef)
 	log.Printf("Deploy: creating container %s with %s", container, imageRef)
 	if err := execStep(ctx, "docker", args...); err != nil {
-		return fmt.Errorf("create failed: %w", err)
+		return result, fmt.Errorf("create failed: %w", err)
 	}
+	result.add("created container " + container + " from " + imageRef)
 
 	if err := execStep(ctx, "docker", "start", container); err != nil {
-		return fmt.Errorf("start failed: %w", err)
+		return result, fmt.Errorf("start failed: %w", err)
 	}
+	result.add("started container " + container)
 
 	log.Printf("Deploy: container %s updated to %s", container, imageRef)
-	return nil
+	return result, nil
 }
 
 // updateSelf recreates the container this process runs in. The whole
 // stop/rm/create/start sequence runs inside a detached helper container, so
 // stopping the target does not kill the deployer mid-sequence.
-func (d *dockerDeployer) updateSelf(ctx context.Context, container, imageRef string, cfg *containerInspect) error {
+func (d *dockerDeployer) updateSelf(ctx context.Context, container, imageRef string, cfg *containerInspect, result *DeployResult) (*DeployResult, error) {
 	createArgs := containerCreateArgs(cfg)
 	var b strings.Builder
 	b.WriteString("docker stop ")
@@ -171,22 +194,31 @@ func (d *dockerDeployer) updateSelf(ctx context.Context, container, imageRef str
 	b.WriteString(shQuote(imageRef))
 	b.WriteString(" && docker start ")
 	b.WriteString(shQuote(container))
-	return runHelper(ctx, b.String(), nil)
+	if err := runHelper(ctx, b.String(), nil); err != nil {
+		return result, fmt.Errorf("self-update failed: %w", err)
+	}
+	// The sequence ran inside the detached helper; report it as performed.
+	result.add("stopped container " + container)
+	result.add("removed container " + container)
+	result.add("created container " + container + " from " + imageRef)
+	result.add("started container " + container)
+	return result, nil
 }
 
 // composeDeployer updates a compose-managed service via docker compose.
 type composeDeployer struct{}
 
-func (d *composeDeployer) PullAndUpdate(ctx context.Context, target Target, tag string) error {
+func (d *composeDeployer) PullAndUpdate(ctx context.Context, target Target, tag string) (*DeployResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, deployTimeout)
 	defer cancel()
 
+	result := &DeployResult{}
 	proj, err := composeProjectFor(ctx, target.Container)
 	if err != nil || proj == nil {
 		// Not (or no longer) compose-managed — fall back to the legacy
 		// behavior of running docker compose from the current directory.
 		log.Printf("Deploy (compose): container %s not compose-managed (%v), falling back to cwd", target.Container, err)
-		return d.runFromCwd(ctx, target.Container)
+		return d.runFromCwd(ctx, target.Container, result)
 	}
 
 	// Run pull + up inside a detached helper that mounts the Docker socket and
@@ -195,20 +227,27 @@ func (d *composeDeployer) PullAndUpdate(ctx context.Context, target Target, tag 
 	script := composeCommand(proj, "pull") + " && " + composeCommand(proj, "up")
 	mount := proj.WorkingDir + ":" + proj.WorkingDir
 	log.Printf("Deploy (compose): project=%s dir=%s service=%s", proj.Project, proj.WorkingDir, proj.Service)
-	return runHelper(ctx, script, []string{mount})
+	if err := runHelper(ctx, script, []string{mount}); err != nil {
+		return result, err
+	}
+	result.add("pulled service " + proj.Service + " (docker compose)")
+	result.add("recreated service " + proj.Service + " (docker compose)")
+	return result, nil
 }
 
-func (d *composeDeployer) runFromCwd(ctx context.Context, service string) error {
+func (d *composeDeployer) runFromCwd(ctx context.Context, service string, result *DeployResult) (*DeployResult, error) {
 	log.Printf("Deploy (compose): pulling service %s", service)
 	if err := execStep(ctx, "docker", "compose", "pull", service); err != nil {
-		return fmt.Errorf("compose pull failed: %w", err)
+		return result, fmt.Errorf("compose pull failed: %w", err)
 	}
+	result.add("pulled service " + service)
 	log.Printf("Deploy (compose): recreating service %s", service)
 	if err := execStep(ctx, "docker", "compose", "up", "-d", "--no-deps", service); err != nil {
-		return fmt.Errorf("compose up failed: %w", err)
+		return result, fmt.Errorf("compose up failed: %w", err)
 	}
+	result.add("recreated service " + service)
 	log.Printf("Deploy (compose): service %s updated", service)
-	return nil
+	return result, nil
 }
 
 // composeProject describes how a container's compose project can be driven.
