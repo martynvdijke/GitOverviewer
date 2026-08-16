@@ -1,32 +1,32 @@
-<div class="layout layout--col gap--xsmall">
+<div class="layout layout--col layout--stretch gap--xsmall">
   <div class="title_bar">
     <img class="image" width="32" src="{{ trml.plugin_settings.custom_fields_values.url | default: 'https://gitlens.vandijke.xyz' }}/static/logo.svg" />
     <span class="title">GitLens</span>
   </div>
 
   <div class="item">
-    <span class="value value--large">{{ IDX_0.workflow_pass_rate | default: 0 }}%</span>
+    <span class="value value--large">{{ workflow_pass_rate | default: 0 }}%</span>
     <span class="label label--small">workflow pass rate</span>
   </div>
 
   <div class="grid grid--cols-2">
     <div class="col col--start">
       <div class="item">
-        <span class="value value--xxsmall">{{ IDX_0.total_repos | default: 0 }}</span>
+        <span class="value value--xxsmall">{{ total_repos | default: 0 }}</span>
         <span class="label label--small">repos</span>
       </div>
       <div class="item">
-        <span class="value value--xxsmall">{{ IDX_0.total_releases | default: 0 }}</span>
+        <span class="value value--xxsmall">{{ total_releases | default: 0 }}</span>
         <span class="label label--small">releases</span>
       </div>
     </div>
     <div class="col col--start">
       <div class="item">
-        <span class="value value--xxsmall">{{ IDX_0.failing_repos | default: 0 }}</span>
+        <span class="value value--xxsmall">{{ failing_repos | default: 0 }}</span>
         <span class="label label--small">failing</span>
       </div>
-      {% if IDX_0.failing_repo_list.size > 0 %}
-        <span class="content">{{ IDX_0.failing_repo_list[0].full_name }}</span>
+      {% if failing_repo_list.size > 0 %}
+        <span class="content">{{ failing_repo_list[0].full_name }}</span>
       {% else %}
         <span class="content">All clear</span>
       {% endif %}

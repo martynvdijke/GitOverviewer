@@ -1,4 +1,4 @@
-<div class="layout layout--col gap--small">
+<div class="layout layout--col layout--stretch gap--xsmall">
   <div class="title_bar">
     <img class="image" width="32" src="{{ trml.plugin_settings.custom_fields_values.url | default: 'https://gitlens.vandijke.xyz' }}/static/logo.svg" />
     <span class="title">GitLens</span>
@@ -7,22 +7,22 @@
   <div class="grid grid--cols-2">
     <div class="col col--start">
       <div class="item">
-        <span class="value value--large">{{ IDX_0.total_repos | default: 0 }}</span>
+        <span class="value value--medium">{{ total_repos | default: 0 }}</span>
         <span class="label label--small">repos</span>
       </div>
       <div class="item">
-        <span class="value value--large">{{ IDX_0.total_releases | default: 0 }}</span>
+        <span class="value value--medium">{{ total_releases | default: 0 }}</span>
         <span class="label label--small">releases</span>
       </div>
     </div>
     <div class="col col--start">
       <div class="item">
-        <span class="value value--large">{{ IDX_0.failing_repos | default: 0 }}</span>
+        <span class="value value--medium">{{ failing_repos | default: 0 }}</span>
         <span class="label label--small">failing</span>
       </div>
       <div class="item">
-        <span class="value value--large">{{ IDX_0.workflow_pass_rate | default: 0 }}%</span>
-        <span class="label label--small">pass rate</span>
+        <span class="value value--medium">{{ workflow_pass_rate | default: 0 }}%</span>
+        <span class="label label--small">pass</span>
       </div>
     </div>
   </div>
@@ -30,10 +30,9 @@
   <div class="divider--h"></div>
 
   <span class="label label--small">Latest releases</span>
-  {% if IDX_0.latest_releases.size > 0 %}
-    {% for release in IDX_0.latest_releases limit: 2 %}
+  {% if latest_releases.size > 0 %}
+    {% for release in latest_releases limit: 1 %}
       <div class="item">
-        <span class="content">{{ release.full_name }}</span>
         <span class="value value--xsmall">{{ release.tag }}</span>
       </div>
     {% endfor %}

@@ -2,6 +2,6 @@
 ---
 watch: [.trmnlp.yml, src]
 custom_fields:
-  url: ""
+  url: "https://gitlens.vandijke.xyz"
 variables:
   trmnl: {}
