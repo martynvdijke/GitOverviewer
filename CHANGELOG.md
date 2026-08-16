@@ -1,3 +1,10 @@
+## [1.31.5](https://github.com/martynvdijke/gitlens/compare/v1.31.4...v1.31.5) (2026-08-16)
+
+
+### Bug Fixes
+
+* **trmnl:** fix summary data and compact layouts ([7d5451c](https://github.com/martynvdijke/gitlens/commit/7d5451c48c7e9d90b23726ec4d1032175f9a2a5a))
+
 ## [1.31.4](https://github.com/martynvdijke/gitlens/compare/v1.31.3...v1.31.4) (2026-08-16)
 
 ## [1.31.3](https://github.com/martynvdijke/gitlens/compare/v1.31.2...v1.31.3) (2026-08-15)
