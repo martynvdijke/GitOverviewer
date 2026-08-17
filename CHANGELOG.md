@@ -1,3 +1,15 @@
+# [1.32.0](https://github.com/martynvdijke/gitlens/compare/v1.31.5...v1.32.0) (2026-08-17)
+
+
+### Bug Fixes
+
+* **deploy:** make gotify notification tests wait for the send ([71dec41](https://github.com/martynvdijke/gitlens/commit/71dec41951c746c63a46e58511657d06bdaa924f))
+
+
+### Features
+
+* **deploy:** include commit message in gotify notification, drop step list ([61624ed](https://github.com/martynvdijke/gitlens/commit/61624ed36f01f955df0da34b20870f73a51584db))
+
 ## [1.31.5](https://github.com/martynvdijke/gitlens/compare/v1.31.4...v1.31.5) (2026-08-16)
 
 
