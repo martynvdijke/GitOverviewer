@@ -230,13 +230,20 @@ func staticTargets(ts []deploy.Target) targetsProvider {
 	return func(context.Context) ([]deploy.Target, error) { return ts, nil }
 }
 
-// fakeNotifier captures Gotify sends for testing.
+// fakeNotifier captures Gotify sends for testing. done is closed after the
+// first Send completes, so tests can wait for the notification instead of
+// racing the async runDeploy goroutine.
 type fakeNotifier struct {
 	sends []struct {
 		Title    string
 		Message  string
 		Priority int
 	}
+	done chan struct{}
+}
+
+func newFakeNotifier() *fakeNotifier {
+	return &fakeNotifier{done: make(chan struct{})}
 }
 
 func (f *fakeNotifier) Send(_ context.Context, title, message string, priority int) error {
@@ -245,7 +252,16 @@ func (f *fakeNotifier) Send(_ context.Context, title, message string, priority i
 		Message  string
 		Priority int
 	}{title, message, priority})
+	select {
+	case <-f.done:
+	default:
+		close(f.done)
+	}
 	return nil
+}
+
+func (f *fakeNotifier) waitForSend() {
+	<-f.done
 }
 
 func makeReleasePayload(action, tag, repo string, prerelease bool) string {
@@ -472,7 +488,7 @@ func TestHandleRelease_GotifySuccessMentionsRelease(t *testing.T) {
 		TagStrategy: deploy.TagStrategyReleaseTag,
 	}
 	fake := newFakeDeployer()
-	notif := &fakeNotifier{}
+	notif := newFakeNotifier()
 	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, notif)
 
 	payload := makeReleasePayloadFull("published", "v1.2.3", "test/repo", false,
@@ -489,6 +505,7 @@ func TestHandleRelease_GotifySuccessMentionsRelease(t *testing.T) {
 	}
 
 	fake.waitForCall()
+	notif.waitForSend()
 	if len(notif.sends) != 1 {
 		t.Fatalf("expected 1 notification, got %d", len(notif.sends))
 	}
@@ -837,7 +854,7 @@ func TestHandlePackage_GotifySuccessMentionsImage(t *testing.T) {
 		TagStrategy: deploy.TagStrategyReleaseTag,
 	}
 	fake := newFakeDeployer()
-	notif := &fakeNotifier{}
+	notif := newFakeNotifier()
 	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, notif)
 
 	payload := makeRegistryPackagePayload("published", "v1.2.3", "repo", "test", "test/repo", "container")
@@ -853,6 +870,7 @@ func TestHandlePackage_GotifySuccessMentionsImage(t *testing.T) {
 	}
 
 	fake.waitForCall()
+	notif.waitForSend()
 	if len(notif.sends) != 1 {
 		t.Fatalf("expected 1 notification, got %d", len(notif.sends))
 	}
@@ -887,7 +905,7 @@ func TestHandleRelease_GotifyFailureMentionsReleaseAndError(t *testing.T) {
 	}
 	fake := newFakeDeployer()
 	fake.err = errors.New("pull failed")
-	notif := &fakeNotifier{}
+	notif := newFakeNotifier()
 	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, notif)
 
 	payload := makeReleasePayload("published", "v1.2.3", "test/repo", false)
@@ -903,6 +921,7 @@ func TestHandleRelease_GotifyFailureMentionsReleaseAndError(t *testing.T) {
 	}
 
 	fake.waitForCall()
+	notif.waitForSend()
 	if len(notif.sends) != 1 {
 		t.Fatalf("expected 1 notification, got %d", len(notif.sends))
 	}
