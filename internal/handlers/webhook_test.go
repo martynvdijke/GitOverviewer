@@ -32,7 +32,12 @@ func newTestWebhookHandler(t *testing.T, secret string) *WebhookHandler {
 	hub := ws.NewHub()
 	go hub.Run()
 	syncer := sync.NewSyncer(client, ghClient, map[string]provider.Provider{"github": provider.NewGitHubAdapter(ghClient)}, hub)
-	return NewWebhookHandler(client, syncer, secret)
+	handler := NewWebhookHandler(client, syncer, secret)
+	// Stub the commit lookup so tests never hit the network.
+	handler.commitMsgFn = func(context.Context, string, string) string {
+		return "fix: test commit message"
+	}
+	return handler
 }
 
 func signPayload(secret, payload string) string {
@@ -489,9 +494,10 @@ func TestHandleRelease_GotifySuccessMentionsRelease(t *testing.T) {
 	}
 	s := notif.sends[0]
 	for _, want := range []string{
-		`"New Charting"`, // release name
-		"v1.2.3",         // release tag
-		"octocat",        // author
+		`"New Charting"`,                   // release name
+		"v1.2.3",                           // release tag
+		"octocat",                          // author
+		"Commit: fix: test commit message", // deployed commit message
 		"https://github.com/test/repo/releases/tag/v1.2.3", // release link
 		"test-app",                // container
 		"ghcr.io/test/repo:1.2.3", // image:tag
@@ -500,13 +506,13 @@ func TestHandleRelease_GotifySuccessMentionsRelease(t *testing.T) {
 			t.Errorf("notification should mention %q, got: %s", want, s.Message)
 		}
 	}
-	for _, want := range []string{
+	for _, notWant := range []string{
 		"What happened:",
 		"pulled image ghcr.io/test/repo:1.2.3",
 		"recreated container test-app",
 	} {
-		if !strings.Contains(s.Message, want) {
-			t.Errorf("notification should report the deploy steps %q, got: %s", want, s.Message)
+		if strings.Contains(s.Message, notWant) {
+			t.Errorf("notification should not mention deploy steps %q, got: %s", notWant, s.Message)
 		}
 	}
 	if !strings.Contains(s.Title, "v1.2.3") {
@@ -855,11 +861,13 @@ func TestHandlePackage_GotifySuccessMentionsImage(t *testing.T) {
 		"Image v1.2.3 published",
 		"test-app",                // container
 		"ghcr.io/test/repo:1.2.3", // image:tag
-		"What happened:",
 	} {
 		if !strings.Contains(s.Message, want) {
 			t.Errorf("notification should mention %q, got: %s", want, s.Message)
 		}
+	}
+	if strings.Contains(s.Message, "What happened:") {
+		t.Errorf("notification should not mention deploy steps, got: %s", s.Message)
 	}
 	if !strings.Contains(s.Title, "image deploy") {
 		t.Errorf("title should say image deploy, got: %s", s.Title)
@@ -905,10 +913,52 @@ func TestHandleRelease_GotifyFailureMentionsReleaseAndError(t *testing.T) {
 	if !strings.Contains(s.Message, "octocat") {
 		t.Errorf("notification should mention the release author, got: %s", s.Message)
 	}
-	if !strings.Contains(s.Message, "What happened:") {
-		t.Errorf("notification should report completed steps even on failure, got: %s", s.Message)
+	if !strings.Contains(s.Message, "Commit: fix: test commit message") {
+		t.Errorf("notification should mention the deployed commit, got: %s", s.Message)
+	}
+	if strings.Contains(s.Message, "What happened:") {
+		t.Errorf("notification should not mention deploy steps, got: %s", s.Message)
 	}
 	if s.Priority != 5 {
 		t.Errorf("expected priority 5 for failure, got %d", s.Priority)
+	}
+}
+
+func TestDeployMessage_IncludesCommitOmitsSteps(t *testing.T) {
+	msg := deployMessage(releaseInfo{
+		Repo:   "test/repo",
+		Tag:    "v1.2.3",
+		Name:   "New Charting",
+		Author: "octocat",
+		URL:    "https://github.com/test/repo/releases/tag/v1.2.3",
+		Commit: "fix: improve compact layouts",
+	}, deploy.Target{Container: "test-app", Image: "ghcr.io/test/repo"}, "1.2.3", nil)
+
+	for _, want := range []string{
+		"Commit: fix: improve compact layouts",
+		"Container test-app updated to ghcr.io/test/repo:1.2.3",
+	} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("expected %q in message, got: %s", want, msg)
+		}
+	}
+	for _, notWant := range []string{"What happened:", "• "} {
+		if strings.Contains(msg, notWant) {
+			t.Errorf("message should not contain %q, got: %s", notWant, msg)
+		}
+	}
+}
+
+func TestDeployMessage_OmitsCommitWhenUnknown(t *testing.T) {
+	msg := deployMessage(releaseInfo{
+		Repo: "test/repo",
+		Tag:  "v1.2.3",
+	}, deploy.Target{Container: "test-app", Image: "img"}, "1.2.3", nil)
+
+	if strings.Contains(msg, "Commit:") {
+		t.Errorf("message should not mention a commit when none is known, got: %s", msg)
+	}
+	if !strings.Contains(msg, "Container test-app updated to img:1.2.3") {
+		t.Errorf("expected container update line, got: %s", msg)
 	}
 }

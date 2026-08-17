@@ -10,7 +10,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"gitlens/ent"
 	"gitlens/ent/repository"
@@ -38,13 +40,17 @@ type WebhookHandler struct {
 	targetsFn targetsProvider
 	deployer  deploy.Deployer
 	gotify    notifier
+	// commitMsgFn resolves the commit message deployed at a release tag; nil
+	// falls back to the GitHub API. Tests inject a stub.
+	commitMsgFn func(ctx context.Context, repo, ref string) string
 }
 
 func NewWebhookHandler(client *ent.Client, syncer *sync.Syncer, secret string) *WebhookHandler {
 	return &WebhookHandler{
-		client: client,
-		syncer: syncer,
-		secret: secret,
+		client:      client,
+		syncer:      syncer,
+		secret:      secret,
+		commitMsgFn: commitMessageForTag,
 	}
 }
 
@@ -94,6 +100,7 @@ type releaseInfo struct {
 	Author string // publishing user's login
 	URL    string // link to the release
 	Kind   string // "" for releases, "package" for container image publishes
+	Commit string // first line of the commit message at the tag ("" if unknown)
 }
 
 func releaseFromPayload(p releasePayload) releaseInfo {
@@ -392,32 +399,40 @@ func (h *WebhookHandler) handlePackage(c *gin.Context, body []byte) {
 
 func (h *WebhookHandler) runDeploy(release releaseInfo, target deploy.Target, imageTag string) {
 	ctx := context.Background()
-	result, err := h.deployer.PullAndUpdate(ctx, target, imageTag)
+	_, err := h.deployer.PullAndUpdate(ctx, target, imageTag)
 
 	subject := "release deploy"
 	if release.Kind == "package" {
 		subject = "image deploy"
 	}
 	title := fmt.Sprintf("%s %s %s", release.Repo, release.Tag, subject)
+
+	// Resolve the deployed commit's message so the notification can reference
+	// it. Fail-safe: if the lookup fails the notification still sends, just
+	// without a commit line.
+	if h.gotify != nil && release.Kind == "" && release.Repo != "" && release.Tag != "" {
+		release.Commit = h.commitMsgFn(ctx, release.Repo, release.Tag)
+	}
+
 	if err != nil {
 		log.Printf("Deploy: %s failed: %v", release.Repo, err)
 		if h.gotify != nil {
-			h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, result, err), 5)
+			h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, err), 5)
 		}
 		return
 	}
 
 	log.Printf("Deploy: %s succeeded", release.Repo)
 	if h.gotify != nil {
-		h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, result, nil), 2)
+		h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, nil), 2)
 	}
 }
 
 // deployMessage renders the Gotify notification body for a deploy. It always
-// mentions the release — title, tag, author, and link — plus the target
-// container and image, the steps the deploy performed, and the error when the
-// deploy failed.
-func deployMessage(release releaseInfo, target deploy.Target, imageTag string, result *deploy.DeployResult, deployErr error) string {
+// mentions the release — title, tag, author, and link — plus the deployed
+// commit's message (when known) and the target container and image, or the
+// error when the deploy failed.
+func deployMessage(release releaseInfo, target deploy.Target, imageTag string, deployErr error) string {
 	var b strings.Builder
 
 	if release.Kind == "package" {
@@ -430,6 +445,9 @@ func deployMessage(release releaseInfo, target deploy.Target, imageTag string, r
 	if release.Author != "" {
 		fmt.Fprintf(&b, "By: %s\n", release.Author)
 	}
+	if release.Commit != "" {
+		fmt.Fprintf(&b, "Commit: %s\n", release.Commit)
+	}
 
 	if deployErr != nil {
 		fmt.Fprintf(&b, "Deploy FAILED: %s -> %s:%s\nError: %v", target.Container, target.Image, imageTag, deployErr)
@@ -437,17 +455,50 @@ func deployMessage(release releaseInfo, target deploy.Target, imageTag string, r
 		fmt.Fprintf(&b, "Container %s updated to %s:%s", target.Container, target.Image, imageTag)
 	}
 
-	if result != nil && len(result.Steps) > 0 {
-		b.WriteString("\n\nWhat happened:")
-		for _, s := range result.Steps {
-			b.WriteString("\n• ")
-			b.WriteString(s)
-		}
-	}
-
 	if release.URL != "" {
 		b.WriteString("\n")
 		b.WriteString(release.URL)
 	}
 	return b.String()
+}
+
+// commitMessageForTag fetches the first line of the commit message at the
+// given tag or ref via the GitHub API. The release webhook payload carries no
+// commit message, so it is looked up when building the notification. Any
+// failure (network, rate limit, private repo) returns "" — the notification is
+// sent without a commit line rather than dropped.
+func commitMessageForTag(ctx context.Context, repo, ref string) string {
+	u := "https://api.github.com/repos/" + repo + "/commits/" + url.PathEscape(ref)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "gitlens")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+
+	var payload struct {
+		Commit struct {
+			Message string `json:"message"`
+		} `json:"commit"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return ""
+	}
+
+	// Only the subject line — the body is the changelog and would make the
+	// notification unreadable.
+	if i := strings.IndexByte(payload.Commit.Message, '\n'); i >= 0 {
+		return payload.Commit.Message[:i]
+	}
+	return payload.Commit.Message
 }
