@@ -3,7 +3,7 @@ no_screen_padding: 'no'
 dark_mode: 'no'
 static_data: ''
 polling_verb: get
-framework_version: 2.3.7
+framework_version: latest
 serverless_language: ''
 polling_url: "{{url}}/api/trmnl/summary"
 polling_headers: ''
