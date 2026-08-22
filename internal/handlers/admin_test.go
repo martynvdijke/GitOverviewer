@@ -58,6 +58,7 @@ var adminTestTmpl = template.Must(template.New("").Funcs(template.FuncMap{
 }).Parse(`
 {{define "admin_otel_form"}}<div>otel_form endpoint={{if .Config}}{{.Config.OtelEndpoint}}{{end}}</div>{{end}}
 {{define "admin_gotify_form"}}<div>gotify_form url={{if .Config}}{{.Config.GotifyURL}}{{end}}</div>{{end}}
+{{define "admin_telegram_form"}}<div>telegram_form chat={{if .Config}}{{.Config.TelegramChatID}}{{end}}</div>{{end}}
 {{define "admin_users_tab"}}<div>users_tab {{range .Users}}user={{.Login}}:admin={{.IsAdmin}} {{end}}current={{.UserID}}</div>{{end}}
 `))
 
@@ -81,6 +82,12 @@ func adminRequest(h *AdminHandler, userID int64, method, path, body string) *htt
 	case method == "POST" && path == "/admin/gotify/test":
 		handlerFn = h.TestGotify
 		routeMethod, routePath = "POST", "/admin/gotify/test"
+	case method == "POST" && path == "/admin/telegram":
+		handlerFn = h.UpdateTelegram
+		routeMethod, routePath = "POST", "/admin/telegram"
+	case method == "POST" && path == "/admin/telegram/test":
+		handlerFn = h.TestTelegram
+		routeMethod, routePath = "POST", "/admin/telegram/test"
 	case method == "GET" && path == "/api/settings":
 		handlerFn = h.ListSettings
 		routeMethod, routePath = "GET", "/api/settings"
@@ -386,6 +393,108 @@ func TestAdminHandler_TestGotify_FailureDoesNotExposeCredentials(t *testing.T) {
 	}
 	if strings.Contains(w.Body.String(), secret) {
 		t.Fatal("Gotify token must not appear in response")
+	}
+}
+
+func TestAdminHandler_UpdateTelegram_Create(t *testing.T) {
+	h, client := newTestAdminHandler(t)
+	adminID := createAdminUser(t, client)
+
+	body := "telegram_bot_token=123456:ABC-DEF&telegram_chat_id=-10042"
+	w := adminRequest(h, int64(adminID), "POST", "/admin/telegram", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "telegram_form") {
+		t.Fatal("expected telegram_form in response")
+	}
+
+	cfg, err := client.AdminConfig.Get(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected AdminConfig to be created: %v", err)
+	}
+	if cfg.TelegramBotToken != "123456:ABC-DEF" {
+		t.Fatalf("expected TelegramBotToken saved, got '%s'", cfg.TelegramBotToken)
+	}
+	if cfg.TelegramChatID != "-10042" {
+		t.Fatalf("expected TelegramChatID saved, got '%s'", cfg.TelegramChatID)
+	}
+}
+
+func TestAdminHandler_UpdateTelegram_BlankTokenKeepsExisting(t *testing.T) {
+	h, client := newTestAdminHandler(t)
+	adminID := createAdminUser(t, client)
+
+	_, err := client.AdminConfig.Create().
+		SetID(1).
+		SetTelegramBotToken("123456:OLD").
+		SetTelegramChatID("-1").
+		Save(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Blank token must preserve the previously saved token; chat ID updates.
+	body := "telegram_bot_token=&telegram_chat_id=-10099"
+	w := adminRequest(h, int64(adminID), "POST", "/admin/telegram", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d, body: %s", w.Code, w.Body.String())
+	}
+
+	cfg, err := client.AdminConfig.Get(context.Background(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.TelegramBotToken != "123456:OLD" {
+		t.Fatalf("expected token preserved, got '%s'", cfg.TelegramBotToken)
+	}
+	if cfg.TelegramChatID != "-10099" {
+		t.Fatalf("expected chat id updated, got '%s'", cfg.TelegramChatID)
+	}
+}
+
+func TestAdminHandler_UpdateTelegram_ReloadInvoked(t *testing.T) {
+	h, client := newTestAdminHandler(t)
+	adminID := createAdminUser(t, client)
+
+	reloaded := false
+	h.SetTelegramReload(func() { reloaded = true })
+
+	body := "telegram_bot_token=123456:ABC&telegram_chat_id=-7"
+	w := adminRequest(h, int64(adminID), "POST", "/admin/telegram", body)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if !reloaded {
+		t.Fatal("expected telegramReload callback to be invoked after save")
+	}
+}
+
+func TestAdminHandler_TestTelegram_Success(t *testing.T) {
+	h, _ := newTestAdminHandler(t)
+	adminID := createAdminUser(t, h.client)
+	called := false
+	h.SetTelegramTest(func(ctx context.Context) error {
+		called = true
+		return nil
+	})
+
+	w := adminRequest(h, int64(adminID), "POST", "/admin/telegram/test", "")
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "sent successfully") {
+		t.Fatalf("expected successful test response, got %d: %s", w.Code, w.Body.String())
+	}
+	if !called {
+		t.Fatal("expected Telegram test callback to be called")
+	}
+}
+
+func TestAdminHandler_TestTelegram_NotConfigured(t *testing.T) {
+	h, _ := newTestAdminHandler(t)
+	adminID := createAdminUser(t, h.client)
+
+	w := adminRequest(h, int64(adminID), "POST", "/admin/telegram/test", "")
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d: %s", w.Code, w.Body.String())
 	}
 }
 

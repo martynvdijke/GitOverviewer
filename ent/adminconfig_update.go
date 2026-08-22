@@ -144,6 +144,46 @@ func (_u *AdminConfigUpdate) ClearGotifyToken() *AdminConfigUpdate {
 	return _u
 }
 
+// SetTelegramBotToken sets the "telegram_bot_token" field.
+func (_u *AdminConfigUpdate) SetTelegramBotToken(v string) *AdminConfigUpdate {
+	_u.mutation.SetTelegramBotToken(v)
+	return _u
+}
+
+// SetNillableTelegramBotToken sets the "telegram_bot_token" field if the given value is not nil.
+func (_u *AdminConfigUpdate) SetNillableTelegramBotToken(v *string) *AdminConfigUpdate {
+	if v != nil {
+		_u.SetTelegramBotToken(*v)
+	}
+	return _u
+}
+
+// ClearTelegramBotToken clears the value of the "telegram_bot_token" field.
+func (_u *AdminConfigUpdate) ClearTelegramBotToken() *AdminConfigUpdate {
+	_u.mutation.ClearTelegramBotToken()
+	return _u
+}
+
+// SetTelegramChatID sets the "telegram_chat_id" field.
+func (_u *AdminConfigUpdate) SetTelegramChatID(v string) *AdminConfigUpdate {
+	_u.mutation.SetTelegramChatID(v)
+	return _u
+}
+
+// SetNillableTelegramChatID sets the "telegram_chat_id" field if the given value is not nil.
+func (_u *AdminConfigUpdate) SetNillableTelegramChatID(v *string) *AdminConfigUpdate {
+	if v != nil {
+		_u.SetTelegramChatID(*v)
+	}
+	return _u
+}
+
+// ClearTelegramChatID clears the value of the "telegram_chat_id" field.
+func (_u *AdminConfigUpdate) ClearTelegramChatID() *AdminConfigUpdate {
+	_u.mutation.ClearTelegramChatID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *AdminConfigUpdate) SetUpdatedAt(v time.Time) *AdminConfigUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -229,6 +269,18 @@ func (_u *AdminConfigUpdate) sqlSave(ctx context.Context) (_node int, err error)
 	}
 	if _u.mutation.GotifyTokenCleared() {
 		_spec.ClearField(adminconfig.FieldGotifyToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.TelegramBotToken(); ok {
+		_spec.SetField(adminconfig.FieldTelegramBotToken, field.TypeString, value)
+	}
+	if _u.mutation.TelegramBotTokenCleared() {
+		_spec.ClearField(adminconfig.FieldTelegramBotToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.TelegramChatID(); ok {
+		_spec.SetField(adminconfig.FieldTelegramChatID, field.TypeString, value)
+	}
+	if _u.mutation.TelegramChatIDCleared() {
+		_spec.ClearField(adminconfig.FieldTelegramChatID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(adminconfig.FieldUpdatedAt, field.TypeTime, value)
@@ -369,6 +421,46 @@ func (_u *AdminConfigUpdateOne) ClearGotifyToken() *AdminConfigUpdateOne {
 	return _u
 }
 
+// SetTelegramBotToken sets the "telegram_bot_token" field.
+func (_u *AdminConfigUpdateOne) SetTelegramBotToken(v string) *AdminConfigUpdateOne {
+	_u.mutation.SetTelegramBotToken(v)
+	return _u
+}
+
+// SetNillableTelegramBotToken sets the "telegram_bot_token" field if the given value is not nil.
+func (_u *AdminConfigUpdateOne) SetNillableTelegramBotToken(v *string) *AdminConfigUpdateOne {
+	if v != nil {
+		_u.SetTelegramBotToken(*v)
+	}
+	return _u
+}
+
+// ClearTelegramBotToken clears the value of the "telegram_bot_token" field.
+func (_u *AdminConfigUpdateOne) ClearTelegramBotToken() *AdminConfigUpdateOne {
+	_u.mutation.ClearTelegramBotToken()
+	return _u
+}
+
+// SetTelegramChatID sets the "telegram_chat_id" field.
+func (_u *AdminConfigUpdateOne) SetTelegramChatID(v string) *AdminConfigUpdateOne {
+	_u.mutation.SetTelegramChatID(v)
+	return _u
+}
+
+// SetNillableTelegramChatID sets the "telegram_chat_id" field if the given value is not nil.
+func (_u *AdminConfigUpdateOne) SetNillableTelegramChatID(v *string) *AdminConfigUpdateOne {
+	if v != nil {
+		_u.SetTelegramChatID(*v)
+	}
+	return _u
+}
+
+// ClearTelegramChatID clears the value of the "telegram_chat_id" field.
+func (_u *AdminConfigUpdateOne) ClearTelegramChatID() *AdminConfigUpdateOne {
+	_u.mutation.ClearTelegramChatID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *AdminConfigUpdateOne) SetUpdatedAt(v time.Time) *AdminConfigUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -484,6 +576,18 @@ func (_u *AdminConfigUpdateOne) sqlSave(ctx context.Context) (_node *AdminConfig
 	}
 	if _u.mutation.GotifyTokenCleared() {
 		_spec.ClearField(adminconfig.FieldGotifyToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.TelegramBotToken(); ok {
+		_spec.SetField(adminconfig.FieldTelegramBotToken, field.TypeString, value)
+	}
+	if _u.mutation.TelegramBotTokenCleared() {
+		_spec.ClearField(adminconfig.FieldTelegramBotToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.TelegramChatID(); ok {
+		_spec.SetField(adminconfig.FieldTelegramChatID, field.TypeString, value)
+	}
+	if _u.mutation.TelegramChatIDCleared() {
+		_spec.ClearField(adminconfig.FieldTelegramChatID, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(adminconfig.FieldUpdatedAt, field.TypeTime, value)

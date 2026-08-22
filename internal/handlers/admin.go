@@ -21,6 +21,10 @@ type AdminHandler struct {
 	// the runtime notifier. Set by main; nil in tests.
 	gotifyReload func()
 	gotifyTest   func(context.Context) error
+	// telegramReload/telegramTest mirror the Gotify callbacks for the
+	// Telegram channel. Set by main; nil in tests.
+	telegramReload func()
+	telegramTest   func(context.Context) error
 }
 
 func NewAdminHandler(client *ent.Client, otelManager *otel.Manager) *AdminHandler {
@@ -232,6 +236,77 @@ func (h *AdminHandler) TestGotify(c *gin.Context) {
 // client from a configured client that failed to deliver.
 var ErrGotifyNotConfigured = errors.New("gotify not configured")
 
+// SetTelegramReload registers a callback invoked after Telegram settings are
+// saved so the runtime notifier picks up changes without a restart.
+func (h *AdminHandler) SetTelegramReload(fn func()) {
+	h.telegramReload = fn
+}
+
+// SetTelegramTest registers the operation used by the admin diagnostic action.
+func (h *AdminHandler) SetTelegramTest(fn func(context.Context) error) {
+	h.telegramTest = fn
+}
+
+// UpdateTelegram saves the Telegram bot token/chat ID from the admin form,
+// reloads the runtime notifier, and re-renders the form. A blank token keeps
+// the previously saved token (mirroring Gotify semantics).
+func (h *AdminHandler) UpdateTelegram(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	token := strings.TrimSpace(c.PostForm("telegram_bot_token"))
+	chatID := strings.TrimSpace(c.PostForm("telegram_chat_id"))
+
+	_, err := h.client.AdminConfig.Get(ctx, 1)
+	if ent.IsNotFound(err) {
+		_, err = h.client.AdminConfig.Create().
+			SetID(1).
+			SetTelegramBotToken(token).
+			SetTelegramChatID(chatID).
+			Save(ctx)
+	} else if err == nil {
+		u := h.client.AdminConfig.UpdateOneID(1).SetTelegramChatID(chatID)
+		if token != "" {
+			u = u.SetTelegramBotToken(token)
+		}
+		_, err = u.Save(ctx)
+	}
+	if err != nil {
+		log.Printf("admin: error saving Telegram config: %v", err)
+		c.String(http.StatusInternalServerError, "Failed to save Telegram configuration")
+		return
+	}
+
+	if h.telegramReload != nil {
+		h.telegramReload()
+	}
+
+	h.renderTelegramForm(c)
+}
+
+// TestTelegram sends a diagnostic notification through the active runtime
+// client. It intentionally returns generic errors so credentials cannot leak
+// into the admin response.
+func (h *AdminHandler) TestTelegram(c *gin.Context) {
+	if h.telegramTest == nil {
+		c.String(http.StatusServiceUnavailable, "Telegram is not configured. Save a bot token and chat ID first.")
+		return
+	}
+	if err := h.telegramTest(c.Request.Context()); err != nil {
+		if errors.Is(err, ErrTelegramNotConfigured) {
+			c.String(http.StatusServiceUnavailable, "Telegram is not configured. Save a bot token and chat ID first.")
+			return
+		}
+		log.Printf("admin: Telegram test notification failed")
+		c.String(http.StatusBadGateway, "Telegram test notification failed. Check the bot token and chat ID.")
+		return
+	}
+	c.String(http.StatusOK, "Test notification sent successfully.")
+}
+
+// ErrTelegramNotConfigured allows the runtime wiring to distinguish a missing
+// client from a configured client that failed to deliver.
+var ErrTelegramNotConfigured = errors.New("telegram not configured")
+
 // ---- partial render helpers ----
 
 func (h *AdminHandler) renderOTELForm(c *gin.Context) {
@@ -250,6 +325,15 @@ func (h *AdminHandler) renderGotifyForm(c *gin.Context) {
 		log.Printf("admin: error loading config for gotify form: %v", err)
 	}
 	c.HTML(http.StatusOK, "admin_gotify_form", gin.H{"Config": cfg})
+}
+
+func (h *AdminHandler) renderTelegramForm(c *gin.Context) {
+	ctx := c.Request.Context()
+	cfg, err := h.client.AdminConfig.Get(ctx, 1)
+	if err != nil && !ent.IsNotFound(err) {
+		log.Printf("admin: error loading config for telegram form: %v", err)
+	}
+	c.HTML(http.StatusOK, "admin_telegram_form", gin.H{"Config": cfg})
 }
 
 func (h *AdminHandler) renderUserRows(c *gin.Context) {

@@ -31,6 +31,10 @@ type AdminConfig struct {
 	GotifyURL string `json:"gotify_url,omitempty"`
 	// GotifyToken holds the value of the "gotify_token" field.
 	GotifyToken string `json:"gotify_token,omitempty"`
+	// TelegramBotToken holds the value of the "telegram_bot_token" field.
+	TelegramBotToken string `json:"telegram_bot_token,omitempty"`
+	// TelegramChatID holds the value of the "telegram_chat_id" field.
+	TelegramChatID string `json:"telegram_chat_id,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt    time.Time `json:"updated_at,omitempty"`
 	selectValues sql.SelectValues
@@ -45,7 +49,7 @@ func (*AdminConfig) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case adminconfig.FieldID:
 			values[i] = new(sql.NullInt64)
-		case adminconfig.FieldOtelEndpoint, adminconfig.FieldLogSeverity, adminconfig.FieldGotifyURL, adminconfig.FieldGotifyToken:
+		case adminconfig.FieldOtelEndpoint, adminconfig.FieldLogSeverity, adminconfig.FieldGotifyURL, adminconfig.FieldGotifyToken, adminconfig.FieldTelegramBotToken, adminconfig.FieldTelegramChatID:
 			values[i] = new(sql.NullString)
 		case adminconfig.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -112,6 +116,18 @@ func (_m *AdminConfig) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.GotifyToken = value.String
 			}
+		case adminconfig.FieldTelegramBotToken:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field telegram_bot_token", values[i])
+			} else if value.Valid {
+				_m.TelegramBotToken = value.String
+			}
+		case adminconfig.FieldTelegramChatID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field telegram_chat_id", values[i])
+			} else if value.Valid {
+				_m.TelegramChatID = value.String
+			}
 		case adminconfig.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
@@ -174,6 +190,12 @@ func (_m *AdminConfig) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("gotify_token=")
 	builder.WriteString(_m.GotifyToken)
+	builder.WriteString(", ")
+	builder.WriteString("telegram_bot_token=")
+	builder.WriteString(_m.TelegramBotToken)
+	builder.WriteString(", ")
+	builder.WriteString("telegram_chat_id=")
+	builder.WriteString(_m.TelegramChatID)
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))

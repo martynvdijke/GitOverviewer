@@ -118,6 +118,34 @@ func (_c *AdminConfigCreate) SetNillableGotifyToken(v *string) *AdminConfigCreat
 	return _c
 }
 
+// SetTelegramBotToken sets the "telegram_bot_token" field.
+func (_c *AdminConfigCreate) SetTelegramBotToken(v string) *AdminConfigCreate {
+	_c.mutation.SetTelegramBotToken(v)
+	return _c
+}
+
+// SetNillableTelegramBotToken sets the "telegram_bot_token" field if the given value is not nil.
+func (_c *AdminConfigCreate) SetNillableTelegramBotToken(v *string) *AdminConfigCreate {
+	if v != nil {
+		_c.SetTelegramBotToken(*v)
+	}
+	return _c
+}
+
+// SetTelegramChatID sets the "telegram_chat_id" field.
+func (_c *AdminConfigCreate) SetTelegramChatID(v string) *AdminConfigCreate {
+	_c.mutation.SetTelegramChatID(v)
+	return _c
+}
+
+// SetNillableTelegramChatID sets the "telegram_chat_id" field if the given value is not nil.
+func (_c *AdminConfigCreate) SetNillableTelegramChatID(v *string) *AdminConfigCreate {
+	if v != nil {
+		_c.SetTelegramChatID(*v)
+	}
+	return _c
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_c *AdminConfigCreate) SetUpdatedAt(v time.Time) *AdminConfigCreate {
 	_c.mutation.SetUpdatedAt(v)
@@ -283,6 +311,14 @@ func (_c *AdminConfigCreate) createSpec() (*AdminConfig, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.GotifyToken(); ok {
 		_spec.SetField(adminconfig.FieldGotifyToken, field.TypeString, value)
 		_node.GotifyToken = value
+	}
+	if value, ok := _c.mutation.TelegramBotToken(); ok {
+		_spec.SetField(adminconfig.FieldTelegramBotToken, field.TypeString, value)
+		_node.TelegramBotToken = value
+	}
+	if value, ok := _c.mutation.TelegramChatID(); ok {
+		_spec.SetField(adminconfig.FieldTelegramChatID, field.TypeString, value)
+		_node.TelegramChatID = value
 	}
 	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(adminconfig.FieldUpdatedAt, field.TypeTime, value)

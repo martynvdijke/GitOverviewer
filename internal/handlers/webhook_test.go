@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -537,6 +538,73 @@ func TestHandleRelease_GotifySuccessMentionsRelease(t *testing.T) {
 	}
 	if s.Priority != 2 {
 		t.Errorf("expected priority 2 for success, got %d", s.Priority)
+	}
+}
+
+// failingNotifier records the attempt and always errors, simulating an
+// unreachable channel (e.g. Telegram API down).
+type failingNotifier struct{ called bool }
+
+func (f *failingNotifier) Send(context.Context, string, string, int) error {
+	f.called = true
+	return fmt.Errorf("channel unreachable")
+}
+
+func TestHandleRelease_FanOutReachesEveryChannel(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "ghcr.io/test/repo",
+		Container:   "test-app",
+		TagStrategy: deploy.TagStrategyReleaseTag,
+	}
+	fake := newFakeDeployer()
+	n1, n2 := newFakeNotifier(), newFakeNotifier()
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, n1, n2)
+
+	payload := makeReleasePayload("published", "v1.0.0", "test/repo", false)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "release")
+	handler.HandlePush(c)
+
+	fake.waitForCall()
+	n1.waitForSend()
+	n2.waitForSend()
+	if len(n1.sends) != 1 || len(n2.sends) != 1 {
+		t.Fatalf("expected both channels notified once each, got %d and %d", len(n1.sends), len(n2.sends))
+	}
+}
+
+func TestHandleRelease_ChannelFailureDoesNotBlockOthers(t *testing.T) {
+	handler := newTestWebhookHandler(t, "")
+	target := deploy.Target{
+		Repository:  "test/repo",
+		Image:       "ghcr.io/test/repo",
+		Container:   "test-app",
+		TagStrategy: deploy.TagStrategyReleaseTag,
+	}
+	fake := newFakeDeployer()
+	bad, ok := &failingNotifier{}, newFakeNotifier()
+	handler.SetDeployer(staticTargets([]deploy.Target{target}), fake, bad, ok)
+
+	payload := makeReleasePayload("published", "v1.0.0", "test/repo", false)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest("POST", "/webhook/github", bytes.NewReader([]byte(payload)))
+	c.Request.Header.Set("X-GitHub-Event", "release")
+	handler.HandlePush(c)
+
+	ok.waitForSend()
+	if !bad.called {
+		t.Error("expected failing channel to be attempted")
+	}
+	if len(ok.sends) != 1 {
+		t.Fatalf("expected healthy channel to still receive notification, got %d", len(ok.sends))
+	}
+	if w.Code != http.StatusOK {
+		t.Errorf("expected deploy flow to complete normally, got %d", w.Code)
 	}
 }
 

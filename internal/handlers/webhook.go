@@ -22,8 +22,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// notifier is the push channel used for deploy notifications.
-// *gotify.Client satisfies it; tests inject a fake.
+// notifier is a push channel used for deploy notifications.
+// *gotify.Client and *telegram.Client satisfy it; tests inject fakes.
 type notifier interface {
 	Send(ctx context.Context, title, message string, priority int) error
 }
@@ -39,7 +39,9 @@ type WebhookHandler struct {
 	secret    string
 	targetsFn targetsProvider
 	deployer  deploy.Deployer
-	gotify    notifier
+	// notifiers holds every configured push channel (Gotify, Telegram, ...).
+	// Channel clients are nil-safe: calling Send on a nil client is a no-op.
+	notifiers []notifier
 	// commitMsgFn resolves the commit message deployed at a release tag; nil
 	// falls back to the GitHub API. Tests inject a stub.
 	commitMsgFn func(ctx context.Context, repo, ref string) string
@@ -55,16 +57,30 @@ func NewWebhookHandler(client *ent.Client, syncer *sync.Syncer, secret string) *
 }
 
 // SetDeployer configures the deploy subsystem. Call before server starts.
-func (h *WebhookHandler) SetDeployer(provider targetsProvider, d deploy.Deployer, g notifier) {
+// Each notifier receives every deploy notification independently.
+func (h *WebhookHandler) SetDeployer(provider targetsProvider, d deploy.Deployer, ns ...notifier) {
 	h.targetsFn = provider
 	h.deployer = d
-	h.gotify = g
+	h.notifiers = ns
 }
 
-// SetGotify swaps the notifier (e.g. after Gotify settings change in the
-// admin panel). nil disables notifications.
-func (h *WebhookHandler) SetGotify(g notifier) {
-	h.gotify = g
+// SetNotifiers swaps the push channels (e.g. after notification settings
+// change in the admin panel). Empty/nil channels are silent no-ops.
+func (h *WebhookHandler) SetNotifiers(ns ...notifier) {
+	h.notifiers = ns
+}
+
+// notify fans a deploy notification out to every configured channel. A
+// channel failure is logged and never blocks other channels or the deploy flow.
+func (h *WebhookHandler) notify(ctx context.Context, title, message string, priority int) {
+	for _, n := range h.notifiers {
+		if n == nil {
+			continue // unconfigured slot (e.g. SetDeployer(..., nil))
+		}
+		if err := n.Send(ctx, title, message, priority); err != nil {
+			log.Printf("webhook: %T notification failed: %v", n, err)
+		}
+	}
 }
 
 type pushPayload struct {
@@ -410,21 +426,21 @@ func (h *WebhookHandler) runDeploy(release releaseInfo, target deploy.Target, im
 	// Resolve the deployed commit's message so the notification can reference
 	// it. Fail-safe: if the lookup fails the notification still sends, just
 	// without a commit line.
-	if h.gotify != nil && release.Kind == "" && release.Repo != "" && release.Tag != "" {
+	if len(h.notifiers) > 0 && release.Kind == "" && release.Repo != "" && release.Tag != "" {
 		release.Commit = h.commitMsgFn(ctx, release.Repo, release.Tag)
 	}
 
 	if err != nil {
 		log.Printf("Deploy: %s failed: %v", release.Repo, err)
-		if h.gotify != nil {
-			h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, err), 5)
+		if len(h.notifiers) > 0 {
+			h.notify(ctx, title, deployMessage(release, target, imageTag, err), 5)
 		}
 		return
 	}
 
 	log.Printf("Deploy: %s succeeded", release.Repo)
-	if h.gotify != nil {
-		h.gotify.Send(ctx, title, deployMessage(release, target, imageTag, nil), 2)
+	if len(h.notifiers) > 0 {
+		h.notify(ctx, title, deployMessage(release, target, imageTag, nil), 2)
 	}
 }
 

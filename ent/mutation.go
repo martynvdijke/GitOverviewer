@@ -40,21 +40,23 @@ const (
 // AdminConfigMutation represents an operation that mutates the AdminConfig nodes in the graph.
 type AdminConfigMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *int
-	otel_endpoint   *string
-	traces_enabled  *bool
-	metrics_enabled *bool
-	logs_enabled    *bool
-	log_severity    *string
-	gotify_url      *string
-	gotify_token    *string
-	updated_at      *time.Time
-	clearedFields   map[string]struct{}
-	done            bool
-	oldValue        func(context.Context) (*AdminConfig, error)
-	predicates      []predicate.AdminConfig
+	op                 Op
+	typ                string
+	id                 *int
+	otel_endpoint      *string
+	traces_enabled     *bool
+	metrics_enabled    *bool
+	logs_enabled       *bool
+	log_severity       *string
+	gotify_url         *string
+	gotify_token       *string
+	telegram_bot_token *string
+	telegram_chat_id   *string
+	updated_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*AdminConfig, error)
+	predicates         []predicate.AdminConfig
 }
 
 var _ ent.Mutation = (*AdminConfigMutation)(nil)
@@ -452,6 +454,104 @@ func (m *AdminConfigMutation) ResetGotifyToken() {
 	delete(m.clearedFields, adminconfig.FieldGotifyToken)
 }
 
+// SetTelegramBotToken sets the "telegram_bot_token" field.
+func (m *AdminConfigMutation) SetTelegramBotToken(s string) {
+	m.telegram_bot_token = &s
+}
+
+// TelegramBotToken returns the value of the "telegram_bot_token" field in the mutation.
+func (m *AdminConfigMutation) TelegramBotToken() (r string, exists bool) {
+	v := m.telegram_bot_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTelegramBotToken returns the old "telegram_bot_token" field's value of the AdminConfig entity.
+// If the AdminConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AdminConfigMutation) OldTelegramBotToken(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTelegramBotToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTelegramBotToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTelegramBotToken: %w", err)
+	}
+	return oldValue.TelegramBotToken, nil
+}
+
+// ClearTelegramBotToken clears the value of the "telegram_bot_token" field.
+func (m *AdminConfigMutation) ClearTelegramBotToken() {
+	m.telegram_bot_token = nil
+	m.clearedFields[adminconfig.FieldTelegramBotToken] = struct{}{}
+}
+
+// TelegramBotTokenCleared returns if the "telegram_bot_token" field was cleared in this mutation.
+func (m *AdminConfigMutation) TelegramBotTokenCleared() bool {
+	_, ok := m.clearedFields[adminconfig.FieldTelegramBotToken]
+	return ok
+}
+
+// ResetTelegramBotToken resets all changes to the "telegram_bot_token" field.
+func (m *AdminConfigMutation) ResetTelegramBotToken() {
+	m.telegram_bot_token = nil
+	delete(m.clearedFields, adminconfig.FieldTelegramBotToken)
+}
+
+// SetTelegramChatID sets the "telegram_chat_id" field.
+func (m *AdminConfigMutation) SetTelegramChatID(s string) {
+	m.telegram_chat_id = &s
+}
+
+// TelegramChatID returns the value of the "telegram_chat_id" field in the mutation.
+func (m *AdminConfigMutation) TelegramChatID() (r string, exists bool) {
+	v := m.telegram_chat_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTelegramChatID returns the old "telegram_chat_id" field's value of the AdminConfig entity.
+// If the AdminConfig object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AdminConfigMutation) OldTelegramChatID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTelegramChatID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTelegramChatID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTelegramChatID: %w", err)
+	}
+	return oldValue.TelegramChatID, nil
+}
+
+// ClearTelegramChatID clears the value of the "telegram_chat_id" field.
+func (m *AdminConfigMutation) ClearTelegramChatID() {
+	m.telegram_chat_id = nil
+	m.clearedFields[adminconfig.FieldTelegramChatID] = struct{}{}
+}
+
+// TelegramChatIDCleared returns if the "telegram_chat_id" field was cleared in this mutation.
+func (m *AdminConfigMutation) TelegramChatIDCleared() bool {
+	_, ok := m.clearedFields[adminconfig.FieldTelegramChatID]
+	return ok
+}
+
+// ResetTelegramChatID resets all changes to the "telegram_chat_id" field.
+func (m *AdminConfigMutation) ResetTelegramChatID() {
+	m.telegram_chat_id = nil
+	delete(m.clearedFields, adminconfig.FieldTelegramChatID)
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (m *AdminConfigMutation) SetUpdatedAt(t time.Time) {
 	m.updated_at = &t
@@ -522,7 +622,7 @@ func (m *AdminConfigMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AdminConfigMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 10)
 	if m.otel_endpoint != nil {
 		fields = append(fields, adminconfig.FieldOtelEndpoint)
 	}
@@ -543,6 +643,12 @@ func (m *AdminConfigMutation) Fields() []string {
 	}
 	if m.gotify_token != nil {
 		fields = append(fields, adminconfig.FieldGotifyToken)
+	}
+	if m.telegram_bot_token != nil {
+		fields = append(fields, adminconfig.FieldTelegramBotToken)
+	}
+	if m.telegram_chat_id != nil {
+		fields = append(fields, adminconfig.FieldTelegramChatID)
 	}
 	if m.updated_at != nil {
 		fields = append(fields, adminconfig.FieldUpdatedAt)
@@ -569,6 +675,10 @@ func (m *AdminConfigMutation) Field(name string) (ent.Value, bool) {
 		return m.GotifyURL()
 	case adminconfig.FieldGotifyToken:
 		return m.GotifyToken()
+	case adminconfig.FieldTelegramBotToken:
+		return m.TelegramBotToken()
+	case adminconfig.FieldTelegramChatID:
+		return m.TelegramChatID()
 	case adminconfig.FieldUpdatedAt:
 		return m.UpdatedAt()
 	}
@@ -594,6 +704,10 @@ func (m *AdminConfigMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldGotifyURL(ctx)
 	case adminconfig.FieldGotifyToken:
 		return m.OldGotifyToken(ctx)
+	case adminconfig.FieldTelegramBotToken:
+		return m.OldTelegramBotToken(ctx)
+	case adminconfig.FieldTelegramChatID:
+		return m.OldTelegramChatID(ctx)
 	case adminconfig.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
 	}
@@ -654,6 +768,20 @@ func (m *AdminConfigMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetGotifyToken(v)
 		return nil
+	case adminconfig.FieldTelegramBotToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTelegramBotToken(v)
+		return nil
+	case adminconfig.FieldTelegramChatID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTelegramChatID(v)
+		return nil
 	case adminconfig.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -700,6 +828,12 @@ func (m *AdminConfigMutation) ClearedFields() []string {
 	if m.FieldCleared(adminconfig.FieldGotifyToken) {
 		fields = append(fields, adminconfig.FieldGotifyToken)
 	}
+	if m.FieldCleared(adminconfig.FieldTelegramBotToken) {
+		fields = append(fields, adminconfig.FieldTelegramBotToken)
+	}
+	if m.FieldCleared(adminconfig.FieldTelegramChatID) {
+		fields = append(fields, adminconfig.FieldTelegramChatID)
+	}
 	return fields
 }
 
@@ -722,6 +856,12 @@ func (m *AdminConfigMutation) ClearField(name string) error {
 		return nil
 	case adminconfig.FieldGotifyToken:
 		m.ClearGotifyToken()
+		return nil
+	case adminconfig.FieldTelegramBotToken:
+		m.ClearTelegramBotToken()
+		return nil
+	case adminconfig.FieldTelegramChatID:
+		m.ClearTelegramChatID()
 		return nil
 	}
 	return fmt.Errorf("unknown AdminConfig nullable field %s", name)
@@ -751,6 +891,12 @@ func (m *AdminConfigMutation) ResetField(name string) error {
 		return nil
 	case adminconfig.FieldGotifyToken:
 		m.ResetGotifyToken()
+		return nil
+	case adminconfig.FieldTelegramBotToken:
+		m.ResetTelegramBotToken()
+		return nil
+	case adminconfig.FieldTelegramChatID:
+		m.ResetTelegramChatID()
 		return nil
 	case adminconfig.FieldUpdatedAt:
 		m.ResetUpdatedAt()

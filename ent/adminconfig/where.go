@@ -89,6 +89,16 @@ func GotifyToken(v string) predicate.AdminConfig {
 	return predicate.AdminConfig(sql.FieldEQ(FieldGotifyToken, v))
 }
 
+// TelegramBotToken applies equality check predicate on the "telegram_bot_token" field. It's identical to TelegramBotTokenEQ.
+func TelegramBotToken(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEQ(FieldTelegramBotToken, v))
+}
+
+// TelegramChatID applies equality check predicate on the "telegram_chat_id" field. It's identical to TelegramChatIDEQ.
+func TelegramChatID(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEQ(FieldTelegramChatID, v))
+}
+
 // UpdatedAt applies equality check predicate on the "updated_at" field. It's identical to UpdatedAtEQ.
 func UpdatedAt(v time.Time) predicate.AdminConfig {
 	return predicate.AdminConfig(sql.FieldEQ(FieldUpdatedAt, v))
@@ -412,6 +422,156 @@ func GotifyTokenEqualFold(v string) predicate.AdminConfig {
 // GotifyTokenContainsFold applies the ContainsFold predicate on the "gotify_token" field.
 func GotifyTokenContainsFold(v string) predicate.AdminConfig {
 	return predicate.AdminConfig(sql.FieldContainsFold(FieldGotifyToken, v))
+}
+
+// TelegramBotTokenEQ applies the EQ predicate on the "telegram_bot_token" field.
+func TelegramBotTokenEQ(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEQ(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenNEQ applies the NEQ predicate on the "telegram_bot_token" field.
+func TelegramBotTokenNEQ(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNEQ(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenIn applies the In predicate on the "telegram_bot_token" field.
+func TelegramBotTokenIn(vs ...string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldIn(FieldTelegramBotToken, vs...))
+}
+
+// TelegramBotTokenNotIn applies the NotIn predicate on the "telegram_bot_token" field.
+func TelegramBotTokenNotIn(vs ...string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNotIn(FieldTelegramBotToken, vs...))
+}
+
+// TelegramBotTokenGT applies the GT predicate on the "telegram_bot_token" field.
+func TelegramBotTokenGT(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldGT(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenGTE applies the GTE predicate on the "telegram_bot_token" field.
+func TelegramBotTokenGTE(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldGTE(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenLT applies the LT predicate on the "telegram_bot_token" field.
+func TelegramBotTokenLT(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldLT(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenLTE applies the LTE predicate on the "telegram_bot_token" field.
+func TelegramBotTokenLTE(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldLTE(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenContains applies the Contains predicate on the "telegram_bot_token" field.
+func TelegramBotTokenContains(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldContains(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenHasPrefix applies the HasPrefix predicate on the "telegram_bot_token" field.
+func TelegramBotTokenHasPrefix(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldHasPrefix(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenHasSuffix applies the HasSuffix predicate on the "telegram_bot_token" field.
+func TelegramBotTokenHasSuffix(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldHasSuffix(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenIsNil applies the IsNil predicate on the "telegram_bot_token" field.
+func TelegramBotTokenIsNil() predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldIsNull(FieldTelegramBotToken))
+}
+
+// TelegramBotTokenNotNil applies the NotNil predicate on the "telegram_bot_token" field.
+func TelegramBotTokenNotNil() predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNotNull(FieldTelegramBotToken))
+}
+
+// TelegramBotTokenEqualFold applies the EqualFold predicate on the "telegram_bot_token" field.
+func TelegramBotTokenEqualFold(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEqualFold(FieldTelegramBotToken, v))
+}
+
+// TelegramBotTokenContainsFold applies the ContainsFold predicate on the "telegram_bot_token" field.
+func TelegramBotTokenContainsFold(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldContainsFold(FieldTelegramBotToken, v))
+}
+
+// TelegramChatIDEQ applies the EQ predicate on the "telegram_chat_id" field.
+func TelegramChatIDEQ(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEQ(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDNEQ applies the NEQ predicate on the "telegram_chat_id" field.
+func TelegramChatIDNEQ(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNEQ(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDIn applies the In predicate on the "telegram_chat_id" field.
+func TelegramChatIDIn(vs ...string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldIn(FieldTelegramChatID, vs...))
+}
+
+// TelegramChatIDNotIn applies the NotIn predicate on the "telegram_chat_id" field.
+func TelegramChatIDNotIn(vs ...string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNotIn(FieldTelegramChatID, vs...))
+}
+
+// TelegramChatIDGT applies the GT predicate on the "telegram_chat_id" field.
+func TelegramChatIDGT(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldGT(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDGTE applies the GTE predicate on the "telegram_chat_id" field.
+func TelegramChatIDGTE(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldGTE(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDLT applies the LT predicate on the "telegram_chat_id" field.
+func TelegramChatIDLT(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldLT(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDLTE applies the LTE predicate on the "telegram_chat_id" field.
+func TelegramChatIDLTE(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldLTE(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDContains applies the Contains predicate on the "telegram_chat_id" field.
+func TelegramChatIDContains(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldContains(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDHasPrefix applies the HasPrefix predicate on the "telegram_chat_id" field.
+func TelegramChatIDHasPrefix(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldHasPrefix(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDHasSuffix applies the HasSuffix predicate on the "telegram_chat_id" field.
+func TelegramChatIDHasSuffix(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldHasSuffix(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDIsNil applies the IsNil predicate on the "telegram_chat_id" field.
+func TelegramChatIDIsNil() predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldIsNull(FieldTelegramChatID))
+}
+
+// TelegramChatIDNotNil applies the NotNil predicate on the "telegram_chat_id" field.
+func TelegramChatIDNotNil() predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldNotNull(FieldTelegramChatID))
+}
+
+// TelegramChatIDEqualFold applies the EqualFold predicate on the "telegram_chat_id" field.
+func TelegramChatIDEqualFold(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldEqualFold(FieldTelegramChatID, v))
+}
+
+// TelegramChatIDContainsFold applies the ContainsFold predicate on the "telegram_chat_id" field.
+func TelegramChatIDContainsFold(v string) predicate.AdminConfig {
+	return predicate.AdminConfig(sql.FieldContainsFold(FieldTelegramChatID, v))
 }
 
 // UpdatedAtEQ applies the EQ predicate on the "updated_at" field.

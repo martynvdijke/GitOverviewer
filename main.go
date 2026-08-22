@@ -24,6 +24,7 @@ import (
 	"gitlens/internal/forgejo"
 	"gitlens/internal/github"
 	"gitlens/internal/gotify"
+	"gitlens/internal/telegram"
 	"gitlens/internal/handlers"
 	"gitlens/internal/middleware"
 	"gitlens/internal/otel"
@@ -310,30 +311,40 @@ func main() {
 	yearOverviewHandler := handlers.NewYearOverviewHandler(client, syncer)
 	adminHandler := handlers.NewAdminHandler(client, otelManager)
 
-	// Gotify notifications: admin-panel settings take precedence over the
-	// GOTIFY_URL/GOTIFY_TOKEN env vars. reloadGotify re-reads the DB so an
-	// admin save applies live (no restart), and updates both the deploy
-	// webhook notifier and the deploy-tab indicator.
-	reloadGotify := func() *gotify.Client {
+	// Push notifications: admin-panel settings take precedence over env vars
+	// (Gotify only). reloadChannels re-reads the DB so an admin save applies
+	// live (no restart), and updates the deploy webhook notifier, the deploy
+	// tab indicator, and every configured channel client.
+	reloadChannels := func() (*gotify.Client, *telegram.Client) {
 		g := gotify.New() // env fallback
+		var t *telegram.Client
 		if cfg, err := client.AdminConfig.Get(context.Background(), 1); err == nil {
 			if dbg := gotify.NewWith(cfg.GotifyURL, cfg.GotifyToken); dbg != nil {
 				g = dbg
 			}
+			t = telegram.NewWith(cfg.TelegramBotToken, cfg.TelegramChatID)
 		}
-		webhookHandler.SetGotify(g)
+		webhookHandler.SetNotifiers(g, t)
 		deployHandler.SetGotifyOn(g != nil)
-		return g
+		return g, t
 	}
-	adminHandler.SetGotifyReload(func() { reloadGotify() })
+	adminHandler.SetGotifyReload(func() { reloadChannels() })
+	adminHandler.SetTelegramReload(func() { reloadChannels() })
 	adminHandler.SetGotifyTest(func(ctx context.Context) error {
-		g := reloadGotify()
+		g, _ := reloadChannels()
 		if g == nil {
 			return handlers.ErrGotifyNotConfigured
 		}
 		return g.Send(ctx, "[GitLens test]", "This is a GitLens Gotify test notification.", 1)
 	})
-	reloadGotify()
+	adminHandler.SetTelegramTest(func(ctx context.Context) error {
+		_, t := reloadChannels()
+		if t == nil {
+			return handlers.ErrTelegramNotConfigured
+		}
+		return t.Send(ctx, "[GitLens test]", "This is a GitLens Telegram test notification.", 1)
+	})
+	reloadChannels()
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -418,6 +429,8 @@ func main() {
 			admin.POST("/otel", adminHandler.UpdateOTEL)
 			admin.POST("/gotify", adminHandler.UpdateGotify)
 			admin.POST("/gotify/test", adminHandler.TestGotify)
+			admin.POST("/telegram", adminHandler.UpdateTelegram)
+			admin.POST("/telegram/test", adminHandler.TestTelegram)
 			admin.GET("/users", adminHandler.ListUsers)
 			admin.POST("/users/:id/toggle-admin", adminHandler.ToggleAdmin)
 		}

@@ -72,6 +72,34 @@
 </div>
 {{end}}
 
+{{define "admin_telegram_form"}}
+<div class="card border-secondary mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Telegram Notifications</h5>
+        <p class="card-text text-secondary small">Configure Telegram push notifications for deploy events via the Bot API. Create a bot with @BotFather, then paste its token and your chat ID.</p>
+        <form hx-post="/admin/telegram" hx-target="#telegram-panel" hx-swap="innerHTML">
+            <div class="mb-3">
+                <label class="form-label small text-secondary">Bot Token</label>
+                <input type="password" name="telegram_bot_token" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="{{if and .Config .Config.TelegramBotToken}}Token saved — leave blank to keep{{else}}Paste BotFather token{{end}}" autocomplete="off">
+                <div class="form-text text-secondary small">Stored tokens are never displayed. Leave blank to keep the existing token.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small text-secondary">Chat ID</label>
+                <input type="text" name="telegram_chat_id" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="e.g. 123456789 or @channelname" value="{{if .Config}}{{.Config.TelegramChatID}}{{end}}">
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="submit" class="btn btn-sm btn-success">Save</button>
+                <button type="button" class="btn btn-sm btn-outline-info"
+                        hx-post="/admin/telegram/test" hx-target="#telegram-test-status" hx-swap="innerHTML">
+                    Send test notification
+                </button>
+                <span id="telegram-test-status" class="small" role="status"></span>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}
+
 {{define "admin_users_tab"}}
 <div class="card border-secondary mb-4">
     <div class="card-body p-0">

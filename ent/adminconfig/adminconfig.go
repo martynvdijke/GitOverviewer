@@ -27,6 +27,10 @@ const (
 	FieldGotifyURL = "gotify_url"
 	// FieldGotifyToken holds the string denoting the gotify_token field in the database.
 	FieldGotifyToken = "gotify_token"
+	// FieldTelegramBotToken holds the string denoting the telegram_bot_token field in the database.
+	FieldTelegramBotToken = "telegram_bot_token"
+	// FieldTelegramChatID holds the string denoting the telegram_chat_id field in the database.
+	FieldTelegramChatID = "telegram_chat_id"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
 	// Table holds the table name of the adminconfig in the database.
@@ -43,6 +47,8 @@ var Columns = []string{
 	FieldLogSeverity,
 	FieldGotifyURL,
 	FieldGotifyToken,
+	FieldTelegramBotToken,
+	FieldTelegramChatID,
 	FieldUpdatedAt,
 }
 
@@ -114,6 +120,16 @@ func ByGotifyURL(opts ...sql.OrderTermOption) OrderOption {
 // ByGotifyToken orders the results by the gotify_token field.
 func ByGotifyToken(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldGotifyToken, opts...).ToFunc()
+}
+
+// ByTelegramBotToken orders the results by the telegram_bot_token field.
+func ByTelegramBotToken(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTelegramBotToken, opts...).ToFunc()
+}
+
+// ByTelegramChatID orders the results by the telegram_chat_id field.
+func ByTelegramChatID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTelegramChatID, opts...).ToFunc()
 }
 
 // ByUpdatedAt orders the results by the updated_at field.

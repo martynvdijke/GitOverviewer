@@ -25,6 +25,10 @@ func (AdminConfig) Fields() []ent.Field {
 		// remain the fallback when unset.
 		field.String("gotify_url").Optional(),
 		field.String("gotify_token").Optional(),
+		// Telegram push notification settings (Bot API). Managed from the
+		// admin panel; no env fallback.
+		field.String("telegram_bot_token").Optional(),
+		field.String("telegram_chat_id").Optional(),
 		field.Time("updated_at").Default(time.Now).UpdateDefault(time.Now),
 	}
 }
