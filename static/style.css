@@ -686,3 +686,42 @@ body, .card, .navbar, .nav-tabs, footer, .modal-content,
         max-width: none;
     }
 }
+
+/* ===========================
+   Mobile: settings forms
+   =========================== */
+@media (max-width: 576px) {
+    /* Full-width controls (inline width:auto requires !important) */
+    .settings-page select.form-select,
+    .settings-page input.form-control,
+    .settings-page textarea.form-control {
+        width: 100% !important;
+    }
+    /* Stack inline forms (sync interval) vertically */
+    .settings-page form.d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    .settings-page form.d-flex > .btn {
+        width: 100%;
+    }
+}
+
+/* ===========================
+   Mobile: overflow containment
+   =========================== */
+@media (max-width: 576px) {
+    /* Long webhook URL scrolls inside its own box */
+    #webhook-url-text {
+        display: block;
+        white-space: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    /* Wide tables scroll horizontally instead of overflowing the page */
+    .card-body .table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
