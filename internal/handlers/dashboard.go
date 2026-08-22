@@ -144,32 +144,87 @@ func roundPct(v float64) float64 {
 	return math.Round(v*10) / 10
 }
 
-func (h *DashboardHandler) ListRepos(c *gin.Context) {
-	userID := c.GetInt64("user_id")
-	sort := c.Query("sort")
-	q := c.Query("q")
+// repoFilters holds structured filter dimensions parsed from query params.
+type repoFilters struct {
+	Sort     string
+	Query    string
+	Provider string
+	Status   string
+	Language string
+	PRs      string
+}
 
-	order, needsPostSort := parseSortParam(sort)
+// HasActiveFilters reports whether any structured filter dimension is set.
+func (f repoFilters) HasActiveFilters() bool {
+	return f.Provider != "" || f.Status != "" || f.Language != "" || f.PRs != ""
+}
+
+// queryRepos builds the tracked-repo query shared by the /repos partial and
+// the repos tab render. Text search, sort, and all recognized structured
+// filters are AND-combined; unrecognized or empty values are no-ops.
+func (h *DashboardHandler) queryRepos(c *gin.Context, userID int64) ([]*ent.Repository, repoFilters, bool) {
+	f := repoFilters{
+		Sort:     c.Query("sort"),
+		Query:    c.Query("q"),
+		Provider: c.Query("provider"),
+		Status:   c.Query("status"),
+		Language: c.Query("language"),
+		PRs:      c.Query("prs"),
+	}
+	order, needsPostSort := parseSortParam(f.Sort)
 	query := h.client.Repository.Query().
 		Where(repository.HasUserWith(user.ID(int(userID)))).
 		Order(order)
-	if q != "" {
+	if f.Query != "" {
 		query = query.Where(
 			repository.Or(
-				repository.FullNameContainsFold(q),
-				repository.NameContainsFold(q),
+				repository.FullNameContainsFold(f.Query),
+				repository.NameContainsFold(f.Query),
 			),
 		)
 	}
+	switch f.Provider {
+	case "github", "forgejo":
+		query = query.Where(repository.ProviderEQ(f.Provider))
+	}
+	switch f.Status {
+	case "passing":
+		query = query.Where(repository.WorkflowStatusEQ("success"))
+	case "failing":
+		query = query.Where(repository.WorkflowStatusEQ("failure"))
+	case "unknown":
+		query = query.Where(repository.WorkflowStatusNotIn("success", "failure"))
+	}
+	if f.Language != "" {
+		query = query.Where(repository.LanguageEqualFold(f.Language))
+	}
+	if f.PRs == "open" {
+		query = query.Where(repository.OpenPrCountGTE(1))
+	}
 	repos, err := query.All(c.Request.Context())
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "repo_list", gin.H{"Error": "Failed to fetch repositories"})
-		return
+		return nil, f, false
 	}
 	if needsPostSort {
 		sortByBuildStatus(repos)
 	}
-	c.HTML(http.StatusOK, "repo_list", gin.H{"Repos": repos, "Query": q, "Sort": sort})
+	return repos, f, true
+}
+
+func (h *DashboardHandler) ListRepos(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+	repos, f, ok := h.queryRepos(c, userID)
+	if !ok {
+		c.HTML(http.StatusInternalServerError, "repo_list", gin.H{"Error": "Failed to fetch repositories"})
+		return
+	}
+	c.HTML(http.StatusOK, "repo_list", gin.H{
+		"Repos":      repos,
+		"Query":      f.Query,
+		"Sort":       f.Sort,
+		"Filters":    f,
+		"HasFilters": f.HasActiveFilters(),
+	})
 }
 
 func (h *DashboardHandler) SyncRepo(c *gin.Context) {
@@ -231,7 +286,7 @@ func (h *DashboardHandler) ImportAllRepos(c *gin.Context) {
 
 	ghRepos, err := h.gh.ListRepositories(u.AccessToken)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "repo_list", gin.H{"Error": "Failed to fetch repositories from GitHub"})
+		c.HTML(http.StatusInternalServerError, "repo_list", gin.H{"Error": "Failed to fetch repositories from GitHub", "Filters": repoFilters{}, "HasFilters": false})
 		return
 	}
 
@@ -301,7 +356,7 @@ func (h *DashboardHandler) ImportAllRepos(c *gin.Context) {
 		Order(ent.Desc(repository.FieldUpdatedAt)).
 		All(ctx)
 
-	c.HTML(http.StatusOK, "repo_list", gin.H{"Repos": repos})
+	c.HTML(http.StatusOK, "repo_list", gin.H{"Repos": repos, "Query": "", "Sort": "", "Filters": repoFilters{}, "HasFilters": false})
 }
 
 func (h *DashboardHandler) ListPullRequests(c *gin.Context) {
@@ -574,24 +629,7 @@ func (h *DashboardHandler) ReposTab(c *gin.Context) {
 	userID := c.GetInt64("user_id")
 	u, _ := h.client.User.Get(c.Request.Context(), int(userID))
 
-	sort := c.Query("sort")
-	q := c.Query("q")
-	order, needsPostSort := parseSortParam(sort)
-	query := h.client.Repository.Query().
-		Where(repository.HasUserWith(user.ID(int(userID)))).
-		Order(order)
-	if q != "" {
-		query = query.Where(
-			repository.Or(
-				repository.FullNameContainsFold(q),
-				repository.NameContainsFold(q),
-			),
-		)
-	}
-	repos, _ := query.All(c.Request.Context())
-	if needsPostSort {
-		sortByBuildStatus(repos)
-	}
+	repos, f, _ := h.queryRepos(c, userID)
 
 	// Fetch timeline events for the homepage
 	events := h.queryHomepageTimeline(c)
@@ -601,7 +639,10 @@ func (h *DashboardHandler) ReposTab(c *gin.Context) {
 		"User":           u,
 		"Repos":          repos,
 		"ActiveTab":      "repos",
-		"Sort":           sort,
+		"Sort":           f.Sort,
+		"Query":          f.Query,
+		"Filters":        f,
+		"HasFilters":     f.HasActiveFilters(),
 		"TimelineGroups": timelineGroups,
 		"Overview":       computeOverview(repos),
 	})

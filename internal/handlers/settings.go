@@ -259,10 +259,14 @@ func (h *SettingsHandler) SelectRepos(c *gin.Context) {
 		All(ctx)
 
 	c.HTML(http.StatusOK, "repos_tab", gin.H{
-		"User":      u,
-		"Repos":     repos,
-		"Metrics":   computeMetrics(repos),
-		"ActiveTab": "repos",
+		"User":       u,
+		"Repos":      repos,
+		"Metrics":    computeMetrics(repos),
+		"ActiveTab":  "repos",
+		"Sort":       "",
+		"Query":      "",
+		"Filters":    repoFilters{},
+		"HasFilters": false,
 	})
 }
 
@@ -546,10 +550,14 @@ func (h *SettingsHandler) SelectForgejoRepos(c *gin.Context) {
 		All(ctx)
 
 	c.HTML(http.StatusOK, "repos_tab", gin.H{
-		"User":      u,
-		"Repos":     repos,
-		"Metrics":   computeMetrics(repos),
-		"ActiveTab": "repos",
+		"User":       u,
+		"Repos":      repos,
+		"Metrics":    computeMetrics(repos),
+		"ActiveTab":  "repos",
+		"Sort":       "",
+		"Query":      "",
+		"Filters":    repoFilters{},
+		"HasFilters": false,
 	})
 }
 

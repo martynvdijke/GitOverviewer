@@ -146,6 +146,133 @@ func TestListRepos_FilterByQuery(t *testing.T) {
 	}
 }
 
+// serveListReposWithFlags renders repo_list with the HasFilters flag so
+// structured-filter tests can assert handler contract without the real template.
+func serveListReposWithFlags(handler gin.HandlerFunc, method, path string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	engine := gin.New()
+	engine.SetHTMLTemplate(template.Must(template.New("").Funcs(template.FuncMap{
+		"shortSHA":             func(s string) string { return s },
+		"formatTime":           func(t time.Time) string { return "" },
+		"truncate":             func(s string, n int) string { return s },
+		"workflowIcon":         func(status string) string { return "" },
+		"workflowLabel":        func(status string) string { return "" },
+		"hasWorkflowRun":       func(status string) bool { return false },
+		"printf":               func(format string, args ...any) string { return "" },
+		"releaseIcon":          func(conclusion string) string { return "" },
+		"releaseLabel":         func(conclusion string) string { return "" },
+		"hasReleaseConclusion": func(s string) bool { return false },
+	}).Parse(`{{define "repo_list"}}<div>{{range .Repos}}<div class="repo">{{.FullName}}</div>{{else}}{{if .HasFilters}}NO_MATCH{{else}}WELCOME{{end}}{{end}}</div>{{end}}`)))
+	engine.GET("/repos", handler)
+	req := httptest.NewRequest(method, path, nil)
+	for _, cookie := range cookies {
+		req.AddCookie(cookie)
+	}
+	engine.ServeHTTP(w, req)
+	return w
+}
+
+func TestListRepos_StructuredFilters(t *testing.T) {
+	handler, store, client := newTestDashboardHandler(t)
+	ctx := context.Background()
+
+	u, err := client.User.Create().
+		SetGithubID(200).
+		SetLogin("filteruser").
+		SetAccessToken("token").
+		Save(ctx)
+	if err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	seed := []struct {
+		ghID     int64
+		name     string
+		provider string
+		status   string
+		language string
+		openPRs  int
+	}{
+		{1, "alpha", "github", "success", "Go", 0},
+		{2, "beta", "github", "failure", "JavaScript", 2},
+		{3, "gamma", "forgejo", "", "go", 1},
+	}
+	for _, s := range seed {
+		if _, err := client.Repository.Create().
+			SetGithubID(s.ghID).
+			SetOwner("user").
+			SetName(s.name).
+			SetFullName("user/" + s.name).
+			SetHTMLURL("https://example.com/user/" + s.name).
+			SetDefaultBranch("main").
+			SetProvider(s.provider).
+			SetWorkflowStatus(s.status).
+			SetLanguage(s.language).
+			SetOpenPrCount(s.openPRs).
+			SetUserID(u.ID).
+			Save(ctx); err != nil {
+			t.Fatalf("create repo %s: %v", s.name, err)
+		}
+	}
+
+	sessionID := store.Set(int64(u.ID))
+	listHandler := func(c *gin.Context) {
+		c.Set("user_id", int64(u.ID))
+		handler.ListRepos(c)
+	}
+	get := func(query string) string {
+		w := serveListReposRequest(listHandler, "GET", "/repos"+query, &http.Cookie{Name: "gitlens_session", Value: sessionID})
+		if w.Code != http.StatusOK {
+			t.Fatalf("query %q: expected 200, got %d", query, w.Code)
+		}
+		return w.Body.String()
+	}
+
+	tests := []struct {
+		name  string
+		query string
+		want  []string
+		not   []string
+	}{
+		{"provider github", "?provider=github", []string{"alpha", "beta"}, []string{"gamma"}},
+		{"provider forgejo", "?provider=forgejo", []string{"gamma"}, []string{"alpha", "beta"}},
+		{"status passing", "?status=passing", []string{"alpha"}, []string{"beta", "gamma"}},
+		{"status failing", "?status=failing", []string{"beta"}, []string{"alpha", "gamma"}},
+		{"status unknown includes never-synced", "?status=unknown", []string{"gamma"}, []string{"alpha", "beta"}},
+		{"language case-insensitive exact", "?language=go", []string{"alpha", "gamma"}, []string{"beta"}},
+		{"prs open", "?prs=open", []string{"beta", "gamma"}, []string{"alpha"}},
+		{"combined filters AND with q", "?q=alp&provider=github&status=passing", []string{"alpha"}, []string{"beta", "gamma"}},
+		{"invalid values are no-ops", "?provider=bogus&status=bogus&prs=sometimes", []string{"alpha", "beta", "gamma"}, nil},
+		{"no params returns all (regression)", "", []string{"alpha", "beta", "gamma"}, nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			body := get(tc.query)
+			for _, want := range tc.want {
+				if !strings.Contains(body, want) {
+					t.Errorf("query %q: expected %s in body: %s", tc.query, want, body)
+				}
+			}
+			for _, n := range tc.not {
+				if strings.Contains(body, n) {
+					t.Errorf("query %q: did not expect %s in body: %s", tc.query, n, body)
+				}
+			}
+		})
+	}
+
+	// Zero-match with active filters flags HasFilters; no filters shows welcome.
+	w := serveListReposWithFlags(listHandler, "GET", "/repos?status=failing&language=rust", &http.Cookie{Name: "gitlens_session", Value: sessionID})
+	if !strings.Contains(w.Body.String(), "NO_MATCH") {
+		t.Errorf("expected NO_MATCH empty state for zero-match filtered view, body: %s", w.Body.String())
+	}
+	w = serveListReposWithFlags(listHandler, "GET", "/repos?q=doesnotexist", &http.Cookie{Name: "gitlens_session", Value: sessionID})
+	if !strings.Contains(w.Body.String(), "WELCOME") || strings.Contains(w.Body.String(), "NO_MATCH") {
+		t.Errorf("expected WELCOME branch when only q is set and matches nothing, body: %s", w.Body.String())
+	}
+}
+
 func TestDashboard_FilterByQuery(t *testing.T) {
 	handler, store, client := newTestDashboardHandler(t)
 

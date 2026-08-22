@@ -198,6 +198,7 @@
     {{end}}
 
     {{define "repos_tab"}}
+    <div id="repo-filters">
     <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
         <button class="btn btn-success btn-sm" hx-post="/repos/import-all" hx-target="#repo-grid" hx-swap="outerHTML" hx-indicator="#sync-spinner">
             Import All Repositories
@@ -208,8 +209,8 @@
         <span class="text-secondary small">Sort:</span>
         <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto"
             hx-get="/dashboard" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" hx-trigger="change"
-            name="sort">
-            <option value="updated_at" {{if or (eq .Sort "") (eq .Sort "updated_at")}}selected{{end}}>Last Updated</option>
+            hx-include="#repo-filters" name="sort">
+            <option value="" {{if or (eq .Sort "") (eq .Sort "updated_at")}}selected{{end}}>Last Updated</option>
             <option value="build_status" {{if eq .Sort "build_status"}}selected{{end}}>Build Status</option>
             <option value="latest_commit" {{if eq .Sort "latest_commit"}}selected{{end}}>Latest Commit</option>
             <option value="latest_release" {{if eq .Sort "latest_release"}}selected{{end}}>Latest Release</option>
@@ -218,12 +219,40 @@
             <option value="name_desc" {{if eq .Sort "name_desc"}}selected{{end}}>Name (Z-A)</option>
             <option value="synced_at" {{if eq .Sort "synced_at"}}selected{{end}}>Last Synced</option>
         </select>
+        <span class="text-secondary small">Provider:</span>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto"
+            hx-get="/dashboard" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" hx-trigger="change"
+            hx-include="#repo-filters" name="provider">
+            <option value="" {{if eq .Filters.Provider ""}}selected{{end}}>All</option>
+            <option value="github" {{if eq .Filters.Provider "github"}}selected{{end}}>GitHub</option>
+            <option value="forgejo" {{if eq .Filters.Provider "forgejo"}}selected{{end}}>Forgejo</option>
+        </select>
+        <span class="text-secondary small">Status:</span>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto"
+            hx-get="/dashboard" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" hx-trigger="change"
+            hx-include="#repo-filters" name="status">
+            <option value="" {{if eq .Filters.Status ""}}selected{{end}}>All</option>
+            <option value="passing" {{if eq .Filters.Status "passing"}}selected{{end}}>Passing</option>
+            <option value="failing" {{if eq .Filters.Status "failing"}}selected{{end}}>Failing</option>
+            <option value="unknown" {{if eq .Filters.Status "unknown"}}selected{{end}}>Unknown</option>
+        </select>
+        <span class="text-secondary small">PRs:</span>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto"
+            hx-get="/dashboard" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true" hx-trigger="change"
+            hx-include="#repo-filters" name="prs">
+            <option value="" {{if eq .Filters.PRs ""}}selected{{end}}>All</option>
+            <option value="open" {{if eq .Filters.PRs "open"}}selected{{end}}>Open</option>
+        </select>
+        <input type="search" class="form-control form-control-sm bg-dark text-light border-secondary" style="width:auto"
+            placeholder="Language (exact)" hx-get="/dashboard" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+            hx-trigger="keyup changed delay:300ms" hx-include="#repo-filters" name="language" value="{{.Filters.Language}}">
         <span id="sync-spinner" class="htmx-indicator small text-info">Working...</span>
     </div>
 
     <div class="input-group mb-3">
         <span class="input-group-text border-secondary bg-transparent text-secondary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-        <input type="search" class="form-control bg-transparent text-light border-secondary" placeholder="Search repositories..." hx-get="/repos" hx-trigger="keyup changed delay:300ms, search" hx-target="#repo-grid" hx-swap="outerHTML" hx-push-url="true" name="q" value="">
+        <input type="search" class="form-control bg-transparent text-light border-secondary" placeholder="Search repositories..." hx-get="/repos" hx-trigger="keyup changed delay:300ms, search" hx-target="#repo-grid" hx-swap="outerHTML" hx-push-url="true" hx-include="#repo-filters" name="q" value="{{.Query}}">
+    </div>
     </div>
 
     {{template "repo_list" .}}
@@ -236,6 +265,17 @@
     <div class="row g-3">
         {{range .Repos}}
         {{template "repo_card" .}}
+        {{else}}
+        {{if .HasFilters}}
+        <div class="col-12">
+            <div class="card border-secondary text-center py-5">
+                <div class="card-body">
+                    <h3 class="card-title h5">No repositories match your filters</h3>
+                    <p class="card-text text-secondary">Try adjusting or clearing the active filters.</p>
+                    <a class="btn btn-outline-secondary btn-sm" href="/dashboard">Clear filters</a>
+                </div>
+            </div>
+        </div>
         {{else}}
         <div class="col-12">
             <div class="card border-secondary text-center py-5">
@@ -253,6 +293,7 @@
                 </div>
             </div>
         </div>
+        {{end}}
         {{end}}
     </div>
 </div>
