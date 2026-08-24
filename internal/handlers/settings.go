@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"gitlens/ent"
+	"gitlens/ent/apitoken"
 	"gitlens/ent/repository"
 	"gitlens/ent/user"
 	"gitlens/internal/github"
@@ -55,11 +56,20 @@ func (h *SettingsHandler) Index(c *gin.Context) {
 
 	forgejoWarning := h.computeForgejoWarning(c.Request.Context(), u, repos)
 
+	apiTokens, _ := h.client.ApiToken.Query().
+		Where(
+			apitoken.UserIDEQ(u.ID),
+			apitoken.RevokedAtIsNil(),
+		).
+		Order(ent.Desc(apitoken.FieldCreatedAt)).
+		All(c.Request.Context())
+
 	data := gin.H{
 		"User":           u,
 		"Repos":          repos,
 		"WebhookURL":     webhookURL,
 		"ForgejoWarning": forgejoWarning,
+		"ApiTokens":      apiTokens,
 	}
 
 	// Admins also see the instance-wide settings (OTEL, Gotify, Users) on

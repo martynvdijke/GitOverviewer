@@ -4,6 +4,7 @@ package ent
 
 import (
 	"gitlens/ent/adminconfig"
+	"gitlens/ent/apitoken"
 	"gitlens/ent/event"
 	"gitlens/ent/repository"
 	"gitlens/ent/schema"
@@ -43,6 +44,16 @@ func init() {
 	adminconfigDescID := adminconfigFields[0].Descriptor()
 	// adminconfig.DefaultID holds the default value on creation for the id field.
 	adminconfig.DefaultID = adminconfigDescID.Default.(int)
+	apitokenFields := schema.ApiToken{}.Fields()
+	_ = apitokenFields
+	// apitokenDescName is the schema descriptor for name field.
+	apitokenDescName := apitokenFields[1].Descriptor()
+	// apitoken.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	apitoken.NameValidator = apitokenDescName.Validators[0].(func(string) error)
+	// apitokenDescCreatedAt is the schema descriptor for created_at field.
+	apitokenDescCreatedAt := apitokenFields[3].Descriptor()
+	// apitoken.DefaultCreatedAt holds the default value on creation for the created_at field.
+	apitoken.DefaultCreatedAt = apitokenDescCreatedAt.Default.(func() time.Time)
 	eventFields := schema.Event{}.Fields()
 	_ = eventFields
 	// eventDescCreatedAt is the schema descriptor for created_at field.

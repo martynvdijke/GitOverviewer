@@ -286,6 +286,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(client, sessionStore, ghClient, providers)
 	dashHandler := handlers.NewDashboardHandler(client, sessionStore, ghClient, syncer)
 	settingsHandler := handlers.NewSettingsHandler(client, sessionStore, ghClient, providers, syncer)
+	apiTokenHandler := handlers.NewApiTokenHandler(client)
 	chartHandler := handlers.NewChartHandler(client)
 	badgeHandler := handlers.NewBadgeHandler(client)
 	trmnlHandler := handlers.NewTRMNLSummaryHandler(client)
@@ -440,6 +441,17 @@ func main() {
 		api.Use(middleware.AdminRequired(client))
 		{
 			api.GET("/settings", adminHandler.ListSettings)
+		}
+
+		// Personal API token management — accepts session cookie OR bearer
+		// token (so existing tokens can bootstrap new ones).
+		apiTokens := r.Group("/api/tokens")
+		apiTokens.Use(middleware.SessionOrToken(sessionStore, client))
+		{
+			apiTokens.POST("", apiTokenHandler.Create)
+			apiTokens.GET("", apiTokenHandler.List)
+			apiTokens.DELETE("/:id", apiTokenHandler.Revoke)
+			apiTokens.POST("/:id/rotate", apiTokenHandler.Rotate)
 		}
 	}
 

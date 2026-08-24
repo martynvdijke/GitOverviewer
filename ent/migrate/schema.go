@@ -28,6 +28,35 @@ var (
 		Columns:    AdminConfigsColumns,
 		PrimaryKey: []*schema.Column{AdminConfigsColumns[0]},
 	}
+	// APITokensColumns holds the columns for the "api_tokens" table.
+	APITokensColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "user_id", Type: field.TypeInt},
+		{Name: "name", Type: field.TypeString},
+		{Name: "token_hash", Type: field.TypeString, Unique: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "last_used_at", Type: field.TypeTime, Nullable: true},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "revoked_at", Type: field.TypeTime, Nullable: true},
+	}
+	// APITokensTable holds the schema information for the "api_tokens" table.
+	APITokensTable = &schema.Table{
+		Name:       "api_tokens",
+		Columns:    APITokensColumns,
+		PrimaryKey: []*schema.Column{APITokensColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "apitoken_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{APITokensColumns[1]},
+			},
+			{
+				Name:    "apitoken_token_hash",
+				Unique:  false,
+				Columns: []*schema.Column{APITokensColumns[3]},
+			},
+		},
+	}
 	// CommitActivitiesColumns holds the columns for the "commit_activities" table.
 	CommitActivitiesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -236,6 +265,7 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		AdminConfigsTable,
+		APITokensTable,
 		CommitActivitiesTable,
 		EventsTable,
 		MetricSnapshotsTable,

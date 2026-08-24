@@ -278,6 +278,25 @@ task test:e2e
 | `/webhook/github` | POST | GitHub webhook — push (sync) and release (deploy) events |
 | `/api/trmnl/summary` | GET | Public TRMNL summary — latest releases + CI failures (JSON) |
 | `/ws` | GET | WebSocket endpoint |
+| `/api/tokens` | POST | Create a personal API token (secret shown once) |
+| `/api/tokens` | GET | List your API tokens (metadata only) |
+| `/api/tokens/{id}` | DELETE | Revoke an API token |
+| `/api/tokens/{id}/rotate` | POST | Rotate an API token (new secret, old revoked) |
+
+## API Tokens
+
+Machine clients can call token-protected API endpoints with a personal access
+token instead of a browser session:
+
+```
+Authorization: Bearer glt_<your-token>
+```
+
+Create and manage tokens in **Settings → API Tokens** (or the `/api/tokens`
+endpoints above). The secret is shown exactly once at creation — only its
+SHA-256 hash is stored — and can be revoked or rotated at any time. Tokens
+never expire by default; revocation is the control. Browser (HTMX) routes
+keep using session authentication.
 
 ## TRMNL E-Ink Plugin
 
