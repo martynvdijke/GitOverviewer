@@ -24,12 +24,12 @@ import (
 	"gitlens/internal/forgejo"
 	"gitlens/internal/github"
 	"gitlens/internal/gotify"
-	"gitlens/internal/telegram"
 	"gitlens/internal/handlers"
 	"gitlens/internal/middleware"
 	"gitlens/internal/otel"
 	"gitlens/internal/provider"
 	"gitlens/internal/sync"
+	"gitlens/internal/telegram"
 	"gitlens/internal/ws"
 
 	"github.com/gin-gonic/gin"

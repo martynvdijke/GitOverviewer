@@ -16,8 +16,8 @@ import (
 	"gitlens/ent/enttest"
 	"gitlens/internal/middleware"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/gin-gonic/gin"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func newApiTokenTestServer(t *testing.T) (*gin.Engine, *ent.Client, *middleware.SessionStore) {

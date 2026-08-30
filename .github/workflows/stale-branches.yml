@@ -17,15 +17,15 @@ jobs:
           fetch-depth: 0
 
       - name: Delete stale branches
-        uses: fpicalausa/delete-stale-branches@v1
+        uses: fpicalausa/remove-stale-branches@v2
         with:
           dry-run: false
-          days-before-delete: 60
-          ignore-branches: 'main,master,develop'
+          # Mark branches stale after 60 days and delete them in the same pass.
+          days-before-branch-stale: 60
+          days-before-branch-delete: 0
+          exempt-branches-regex: '^(main|master|develop)$'
           operations-per-run: 100
-          default-recipients: ''
-          delete-squashed: true
-          delete-rebasing: true
+          ignore-unknown-authors: true
   otel:
     permissions:
       contents: read # Required. To access the private repository

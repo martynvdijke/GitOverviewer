@@ -13,8 +13,8 @@ import (
 	"gitlens/ent"
 	"gitlens/ent/enttest"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/gin-gonic/gin"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func newTokenTestClient(t *testing.T) *ent.Client {
