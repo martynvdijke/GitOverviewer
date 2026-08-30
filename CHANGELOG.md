@@ -1,3 +1,23 @@
+# [1.33.0](https://github.com/martynvdijke/gitlens/compare/v1.32.2...v1.33.0) (2026-08-30)
+
+
+### Bug Fixes
+
+* **ci:** correct actionlint pin ([e35556f](https://github.com/martynvdijke/gitlens/commit/e35556f60dac785be8cf77a4700d1450ea0f614f))
+* **ci:** gofmt import order and correct stale-branches action ([24fffeb](https://github.com/martynvdijke/gitlens/commit/24fffeb648a439a31c24b2e9162bc7187d65408c))
+* **ci:** make pinact check non-blocking ([49435c7](https://github.com/martynvdijke/gitlens/commit/49435c742c1ff5b203a6832089f2c3da45ec7511))
+* **ci:** remove unsupported --diff flag from pinact ([3b27985](https://github.com/martynvdijke/gitlens/commit/3b27985188e4639bd6e6fa3aa46763a28fb0ceb0))
+* **ci:** update actionlint to v1.7.12 (v1 tag removed upstream) ([2e1636d](https://github.com/martynvdijke/gitlens/commit/2e1636d27758cdbf0ad35c9896abc90135daa9e7))
+
+
+### Features
+
+* **api:** personal API tokens with bearer auth ([2d0aae1](https://github.com/martynvdijke/gitlens/commit/2d0aae19769cdcf1fce43d4fe111076be3bc804e))
+* **dashboard:** structured repo filters (provider, status, language, open PRs) ([760830a](https://github.com/martynvdijke/gitlens/commit/760830a8a0e73e4c7d952c6e6a98ed48ef6d762d))
+* **mobile:** responsive settings forms and overflow containment ([f5480d4](https://github.com/martynvdijke/gitlens/commit/f5480d439d268e608f3b27ce65959d5629af38af))
+* **notifications:** Telegram push channel with multi-channel fan-out ([f5f6073](https://github.com/martynvdijke/gitlens/commit/f5f60737ed63e1cf12431dfafa120f71bb1697b6))
+* **prs,ui:** mobile build badges + merge all passing ([383c019](https://github.com/martynvdijke/gitlens/commit/383c019be17555ab34d15305ac320d54d70223ae))
+
 ## [1.32.2](https://github.com/martynvdijke/gitlens/compare/v1.32.1...v1.32.2) (2026-08-20)
 
 ## [1.32.1](https://github.com/martynvdijke/gitlens/compare/v1.32.0...v1.32.1) (2026-08-18)
