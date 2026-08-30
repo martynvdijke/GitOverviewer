@@ -383,11 +383,18 @@ func (h *DashboardHandler) ListPullRequests(c *gin.Context) {
 	if r.PullRequests != "" {
 		json.Unmarshal([]byte(r.PullRequests), &prs)
 	}
+	passing := 0
+	for _, pr := range prs {
+		if pr.BuildStatus == "success" {
+			passing++
+		}
+	}
 
 	c.HTML(http.StatusOK, "pr_list", gin.H{
-		"Repo":  r,
-		"PRs":   prs,
-		"Count": len(prs),
+		"Repo":         r,
+		"PRs":          prs,
+		"Count":        len(prs),
+		"PassingCount": passing,
 	})
 }
 
@@ -718,14 +725,22 @@ func (h *DashboardHandler) fetchPRTabData(ctx context.Context, userID int, filte
 		allPRs = filtered
 	}
 
+	passingCount := 0
+	for _, pr := range allPRs {
+		if pr.BuildStatus == "success" {
+			passingCount++
+		}
+	}
+
 	return gin.H{
-		"User":       u,
-		"PRs":        allPRs,
-		"Repos":      repos,
-		"FilterRepo": filterRepo,
-		"ActiveTab":  "prs",
-		"MergedSet":  map[string]bool{},
-		"ClosedSet":  map[string]bool{},
+		"User":         u,
+		"PRs":          allPRs,
+		"Repos":        repos,
+		"FilterRepo":   filterRepo,
+		"PassingCount": passingCount,
+		"ActiveTab":    "prs",
+		"MergedSet":    map[string]bool{},
+		"ClosedSet":    map[string]bool{},
 	}, nil
 }
 
@@ -1112,6 +1127,162 @@ func (h *DashboardHandler) BatchClosePRs(c *gin.Context) {
 		data["ToastDetails"] = fmt.Sprintf("Failed: %s", strings.Join(failed, ", "))
 	}
 	c.HTML(http.StatusOK, "prs_tab_with_toast", data)
+}
+
+// BatchMergePassingPRs merges all PRs with a successful build status from the unified queue.
+// It respects the optional ?repo= filter so "Merge All Passing" in a filtered view only merges that repo.
+// PRs with mergeableState dirty/blocked are skipped to avoid deterministic failures.
+func (h *DashboardHandler) BatchMergePassingPRs(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+	ctx := c.Request.Context()
+	filterRepo := c.Query("repo")
+
+	u, err := h.client.User.Get(ctx, int(userID))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "User not found")
+		return
+	}
+
+	data, err := h.fetchPRTabData(ctx, int(userID), filterRepo)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Failed to fetch PR data")
+		return
+	}
+	prs, _ := data["PRs"].([]PRQueueItem)
+	var passing []PRQueueItem
+	for _, pr := range prs {
+		if pr.BuildStatus != "success" {
+			continue
+		}
+		if pr.MergeableState == "dirty" || pr.MergeableState == "blocked" {
+			continue
+		}
+		passing = append(passing, pr)
+	}
+	if len(passing) == 0 {
+		h.renderPRQueue(c, ctx, int(userID), "warning", "No passing PRs to merge", "No PRs with Build: Passing (and mergeable) in the current filter.", nil, nil)
+		return
+	}
+
+	var merged []string
+	var failed []string
+	mergedSet := make(map[string]bool)
+	affectedRepos := make(map[int]*ent.Repository)
+
+	for _, pr := range passing {
+		r, err := h.client.Repository.Query().
+			Where(
+				repository.ID(pr.RepoID),
+				repository.HasUserWith(user.ID(int(userID))),
+			).
+			Only(ctx)
+		if err != nil {
+			failed = append(failed, fmt.Sprintf("#%d (%s: repo not found)", pr.Number, pr.RepoFullName))
+			continue
+		}
+		p, token := h.syncer.ProviderFor(u, r)
+		ok, msg, err := p.MergePullRequest(ctx, token, r.Owner, r.Name, pr.Number)
+		if err != nil || !ok {
+			reason := msg
+			if err != nil {
+				reason = friendlyMergeError(err)
+			}
+			failed = append(failed, fmt.Sprintf("#%d (%s: %s)", pr.Number, pr.RepoFullName, reason))
+			continue
+		}
+		merged = append(merged, fmt.Sprintf("#%d (%s)", pr.Number, pr.RepoFullName))
+		mergedSet[fmt.Sprintf("%d:%d", r.ID, pr.Number)] = true
+		affectedRepos[r.ID] = r
+	}
+
+	for _, r := range affectedRepos {
+		h.syncer.SyncOneBackground(r)
+	}
+
+	fresh, fetchErr := h.fetchPRTabData(ctx, int(userID), filterRepo)
+	if fetchErr != nil {
+		c.String(http.StatusOK, "Merged %d/%d passing", len(merged), len(passing))
+		return
+	}
+	fresh["MergedSet"] = mergedSet
+	if len(failed) == 0 {
+		fresh["ToastType"] = "success"
+		fresh["ToastMessage"] = fmt.Sprintf("All %d passing PR(s) merged!", len(merged))
+	} else {
+		fresh["ToastType"] = "warning"
+		fresh["ToastMessage"] = fmt.Sprintf("Merged %d/%d passing", len(merged), len(passing))
+		fresh["ToastDetails"] = fmt.Sprintf("Failed: %s", strings.Join(failed, ", "))
+	}
+	c.HTML(http.StatusOK, "prs_tab_with_toast", fresh)
+}
+
+// MergePassingPRs merges all passing PRs for a single repo card, using stored PR build status.
+// Skips PRs that are dirty/blocked.
+func (h *DashboardHandler) MergePassingPRs(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+	repoID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "Invalid repo ID")
+		return
+	}
+	ctx := c.Request.Context()
+	r, err := h.client.Repository.Query().
+		Where(
+			repository.ID(repoID),
+			repository.HasUserWith(user.ID(int(userID))),
+		).
+		Only(ctx)
+	if err != nil {
+		c.String(http.StatusNotFound, "Repository not found")
+		return
+	}
+	var prs []prSummary
+	if r.PullRequests != "" {
+		json.Unmarshal([]byte(r.PullRequests), &prs)
+	}
+	var passing []prSummary
+	for _, pr := range prs {
+		if pr.BuildStatus == "success" && pr.MergeableState != "dirty" && pr.MergeableState != "blocked" {
+			passing = append(passing, pr)
+		}
+	}
+	if len(passing) == 0 {
+		c.HTML(http.StatusOK, "repo_card_with_toast", gin.H{
+			"Repo":         r,
+			"ToastType":    "warning",
+			"ToastMessage": "No passing PRs to merge",
+			"ToastDetails": "No PRs with Build: Passing (and mergeable) for this repository.",
+		})
+		return
+	}
+	u, err := h.client.User.Get(ctx, int(userID))
+	if err != nil {
+		c.String(http.StatusInternalServerError, "User not found")
+		return
+	}
+	p, token := h.syncer.ProviderFor(u, r)
+	var failed []int
+	for _, pr := range passing {
+		ok, _, err := p.MergePullRequest(ctx, token, r.Owner, r.Name, pr.Number)
+		if err != nil || !ok {
+			failed = append(failed, pr.Number)
+		}
+	}
+	h.syncer.SyncOneBackground(r)
+	if len(failed) > 0 {
+		c.HTML(http.StatusOK, "repo_card_with_toast", gin.H{
+			"Repo":         r,
+			"ToastType":    "warning",
+			"ToastMessage": fmt.Sprintf("Merged %d/%d passing", len(passing)-len(failed), len(passing)),
+			"ToastDetails": fmt.Sprintf("Failed: %v", failed),
+		})
+	} else {
+		c.HTML(http.StatusOK, "repo_card_with_toast", gin.H{
+			"Repo":         r,
+			"ToastType":    "success",
+			"ToastMessage": fmt.Sprintf("All %d passing PR(s) merged!", len(passing)),
+		})
+	}
 }
 
 // MetricsTab renders the DORA metrics page.

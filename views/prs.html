@@ -15,6 +15,16 @@
 </div>
 
 {{if .PRs}}
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+    <span class="small text-secondary">{{len .PRs}} open · {{.PassingCount}} passing build{{if ne .PassingCount 1}}s{{end}}</span>
+    {{if gt .PassingCount 0}}
+    <button class="btn btn-sm btn-success" hx-post="/prs/batch-merge-passing{{if .FilterRepo}}?repo={{.FilterRepo}}{{end}}" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#batch-spinner" hx-confirm="Merge all {{.PassingCount}} passing PRs{{if .FilterRepo}} in {{.FilterRepo}}{{end}}?" hx-disabled-elt="this">
+        Merge All Passing ({{.PassingCount}})
+    </button>
+    {{else}}
+    <button class="btn btn-sm btn-success" disabled title="No PRs with passing builds">Merge All Passing</button>
+    {{end}}
+</div>
 <form id="pr-queue-form" hx-post="/prs/batch-merge" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#batch-spinner">
     <div id="pr-queue-status" class="mb-2"></div>
 
@@ -36,8 +46,10 @@
                             <span class="text-info small">{{.RepoFullName}}</span>
                             <span class="text-secondary small d-block">{{.HeadRef}} → {{.BaseRef}}</span>
                             <span class="text-secondary small">{{.Author}} &middot; {{printf "%.10s" .CreatedAt}}</span>
-                            {{if eq .MergeableState "clean"}}<span class="badge bg-success ms-1">mergeable</span>{{else if or (eq .MergeableState "dirty") (eq .MergeableState "blocked")}}<span class="badge bg-danger ms-1">conflicts</span>{{end}}
-                            {{if .BuildStatus}}<span class="badge {{prBuildClass .BuildStatus}} ms-1">Build: {{prBuildLabel .BuildStatus}}</span>{{end}}
+                            <div class="d-flex flex-wrap pr-badges">
+                                {{if eq .MergeableState "clean"}}<span class="badge bg-success">mergeable</span>{{else if or (eq .MergeableState "dirty") (eq .MergeableState "blocked")}}<span class="badge bg-danger">conflicts</span>{{end}}
+                                {{if .BuildStatus}}<span class="badge {{prBuildClass .BuildStatus}}">Build: {{prBuildLabel .BuildStatus}}</span>{{end}}
+                            </div>
                         </div>
                     </label>
                     <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
@@ -96,9 +108,10 @@
             <span class="flex-grow-1 min-w-0 d-flex flex-column">
                 <a href="{{.HTMLURL}}" target="_blank" rel="noopener" class="text-light text-decoration-none small fw-medium text-truncate">#{{.Number}} {{.Title}}</a>
                 <span class="text-secondary small text-truncate d-sm-none">{{.RepoFullName}}</span>
-                <span class="text-secondary small">{{.HeadRef}} → {{.BaseRef}}
-                    {{if eq .MergeableState "clean"}}<span class="badge bg-success ms-1">mergeable</span>{{else if or (eq .MergeableState "dirty") (eq .MergeableState "blocked")}}<span class="badge bg-danger ms-1">conflicts</span>{{end}}
-                    {{if .BuildStatus}}<span class="badge {{prBuildClass .BuildStatus}} ms-1">Build: {{prBuildLabel .BuildStatus}}</span>{{end}}
+                <span class="text-secondary small">{{.HeadRef}} → {{.BaseRef}}</span>
+                <span class="d-flex flex-wrap gap-1 pr-badges">
+                    {{if eq .MergeableState "clean"}}<span class="badge bg-success">mergeable</span>{{else if or (eq .MergeableState "dirty") (eq .MergeableState "blocked")}}<span class="badge bg-danger">conflicts</span>{{end}}
+                    {{if .BuildStatus}}<span class="badge {{prBuildClass .BuildStatus}}">Build: {{prBuildLabel .BuildStatus}}</span>{{end}}
                 </span>
             </span>
             <span class="d-none d-sm-flex flex-column" style="width:140px;flex-shrink:0;text-align:right">
@@ -133,13 +146,16 @@
         </div>
         {{end}}
     </div>
-    <div class="mt-3 d-flex align-items-center gap-3">
+    <div class="mt-3 d-flex align-items-center gap-2 flex-wrap">
         <button type="submit" id="pr-merge-selected-btn" class="btn btn-sm btn-success" hx-disabled-elt="this" onclick="return prQueueSubmitGuard(event)" disabled>
             Merge Selected
         </button>
         <button type="submit" id="pr-close-selected-btn" formaction="/prs/batch-close" class="btn btn-sm btn-outline-danger" hx-disabled-elt="this" onclick="return prQueueSubmitGuard(event)" disabled>
             Close Selected
         </button>
+        {{if gt .PassingCount 0}}
+        <button type="button" class="btn btn-sm btn-outline-success" hx-post="/prs/batch-merge-passing{{if .FilterRepo}}?repo={{.FilterRepo}}{{end}}" hx-target="#main-content" hx-swap="innerHTML" hx-indicator="#batch-spinner" hx-confirm="Merge all {{.PassingCount}} passing PRs?">Merge All Passing</button>
+        {{end}}
         <span id="pr-selected-count" class="text-secondary small">0 selected</span>
     </div>
 </form>

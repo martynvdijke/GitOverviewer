@@ -380,6 +380,7 @@ func main() {
 		authed.GET("/prs", middleware.HTMXOnly(), dashHandler.PRsTab)
 		authed.POST("/prs/merge", dashHandler.MergeSinglePR)
 		authed.POST("/prs/batch-merge", dashHandler.BatchMergePRs)
+		authed.POST("/prs/batch-merge-passing", dashHandler.BatchMergePassingPRs)
 		authed.POST("/prs/close", dashHandler.CloseSinglePR)
 		authed.POST("/prs/batch-close", dashHandler.BatchClosePRs)
 		authed.POST("/prs/rerun", dashHandler.RerunPRBuilds)
@@ -392,6 +393,7 @@ func main() {
 		authed.POST("/repos/:id/prs/:number/merge", dashHandler.MergePR)
 		authed.POST("/repos/:id/prs/:number/close", dashHandler.ClosePR)
 		authed.POST("/repos/:id/prs/merge-all", dashHandler.MergeAllPRs)
+		authed.POST("/repos/:id/prs/merge-passing", dashHandler.MergePassingPRs)
 		authed.POST("/repos/:id/prs/close-all", dashHandler.CloseAllPRs)
 		authed.POST("/repos/:id/renovate/rebase-all", dashHandler.RenovateRebaseAll)
 

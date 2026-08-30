@@ -708,6 +708,53 @@ body, .card, .navbar, .nav-tabs, footer, .modal-content,
 }
 
 /* ===========================
+   Mobile: build info readability
+   =========================== */
+@media (max-width: 576px) {
+    .pr-card .badge,
+    .pr-row .badge,
+    .repo-stats .stat-value .badge,
+    .pr-list .badge,
+    .pr-badges .badge {
+        font-size: 0.72rem !important;
+        padding: 0.36em 0.55em;
+        line-height: 1.1;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        border-radius: 0.35rem;
+    }
+    .pr-badges {
+        gap: 0.35rem !important;
+        margin-top: 0.35rem;
+    }
+    /* Build badge higher contrast outline */
+    .pr-badges .badge.bg-warning,
+    .pr-card .badge.bg-warning,
+    .repo-stats .badge.bg-warning {
+        color: #1f2328 !important;
+        border: 1px solid rgba(0,0,0,0.18);
+    }
+    /* Repo Latest Build block: make badge readable even in narrow col-6 */
+    .repo-stats .stat-value .badge {
+        font-size: 0.76rem !important;
+        padding: 0.42em 0.62em;
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        white-space: nowrap;
+    }
+    /* PR list mobile: stack badge row */
+    .pr-list-meta .badge {
+        margin-top: 0.2rem;
+    }
+    /* Slightly larger line-height for author/branch line */
+    .pr-card .min-w-0 > span.text-secondary,
+    .pr-list-meta {
+        line-height: 1.45;
+    }
+}
+
+/* ===========================
    Mobile: overflow containment
    =========================== */
 @media (max-width: 576px) {
